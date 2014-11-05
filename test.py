@@ -7,6 +7,7 @@ from base import *
 from fft import *
 from osc import *
 from instrument import *
+from analysis import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -55,42 +56,17 @@ srate = get_srate()
 
 f = wavein.open("zelda_whistle.wav")
 
-from cmath import polar
-
-def delta_phi(phi1, phi2):
-    delta = phi2 - phi1
-    if delta < -pi:
-        delta += 2 * pi
-    elif delta > pi:
-        delta -= 2 * pi
-    return delta
-
-def unwrap_phase(phis):
-    result = [0.0] * len(phis)
-    running_total = 0.0
-    inverse_two_pi = 0.5 / pi
-    for i in range(len(phis) - 1):
-        running_total += delta_phi(phis[i + 1], phis[i]) * inverse_two_pi # Reversed and normalized to get a positive phase signal in the most common use case.
-        result[i + 1] = running_total
-    return result
-    #return list(accumulate(chain([0], starmap(delta_phi, zip(phis, phis[1:])))))
-
-def polar_decomposition(signal):
-    """Returns a DC-blocked polar decomposition of a real-valued sinusoidal signal."""
-    padded_signal = pad(signal)
-    dft = fft(padded_signal)
-    half = len(dft) // 2
-    dft[:half] = [0.0] * half
-    ps = [polar(z) for z in ifft(dft)[:len(signal)]]
-    rs, phis = zip(*ps)
-    return zip(rs, unwrap_phase(phis))
-
 def sine5(p, r):
     x = p * 2 * pi
-    return sin(x + sin(x * 5) * r * 0.5)
+    return sin(x + sin(x * 5) * r * 0.5 + sin(x * 3) * r * 0.2)
 
 s = [r * sine5(p, r) for r, p in polar_decomposition(f)]
 
+#s = [(220.0 * t - floor(220.0 * t)) - 0.5 for t in time(3)]
+
+#train = fft_train(s)
+#s = ifft_train([0.5 * b * exp(-((f - i * 30) * 0.001)**2) for f, b in freq_enumerate(window)] for i, window in enumerate(train))
+
 play(s)
 
-save(s, "zelda.wav")
+save(s, "temp.wav")
