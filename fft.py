@@ -1,5 +1,4 @@
-from cmath import exp, pi
-
+from cmath import exp as cexp, pi
 
 _twiddle_factors = {}
 
@@ -15,7 +14,7 @@ def fft(x):
     if N in _twiddle_factors:
         twiddle = _twiddle_factors[N]
     else:
-        twiddle = [exp(-2j * pi * k / N) for k in range(N // 2)]
+        twiddle = [cexp(-2j * pi * k / N) for k in range(N // 2)]
         _twiddle_factors[N] = twiddle
     return [even[k] + twiddle[k] * odd[k] for k in range(N // 2)] + \
            [even[k] - twiddle[k] * odd[k] for k in range(N // 2)]
@@ -37,7 +36,7 @@ def rfft(x):
     if N in _twiddle_factors:
         twiddle = _twiddle_factors[N]
     else:
-        twiddle = [exp(-2j * pi * k / N) for k in range(N // 2)]
+        twiddle = [cexp(-2j * pi * k / N) for k in range(N // 2)]
         _twiddle_factors[N] = twiddle
     return [even[k] + twiddle[k] * odd[k] for k in range(N // 2)] + [even[0] - odd[0]]
 

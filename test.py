@@ -54,19 +54,32 @@ srate = get_srate()
 
 #print(sum(timeslice(s, 100)))
 
-f = wavein.open("zelda_whistle.wav")
+#f = wavein.open("zelda_whistle.wav")
 
-def sine5(p, r):
-    x = p * 2 * pi
-    return sin(x + sin(x * 5) * r * 0.5 + sin(x * 3) * r * 0.2)
+#def sine5(p, r):
+#    x = p * 2 * pi
+#    return sin(x + sin(x * 5) * r * 0.5 + sin(x * 3) * r * 0.2)
 
-s = [r * sine5(p, r) for r, p in polar_decomposition(f)]
+#s = [r * sine5(p, r) for r, p in polar_decomposition(f)]
 
 #s = [(220.0 * t - floor(220.0 * t)) - 0.5 for t in time(3)]
 
 #train = fft_train(s)
 #s = ifft_train([0.5 * b * exp(-((f - i * 30) * 0.001)**2) for f, b in freq_enumerate(window)] for i, window in enumerate(train))
 
+#from experiments.hilbert import *
+
+#"""
+#def sine(x):
+#    return sin(2 * pi * x)
+
+#s = [0.4 * (
+#    sine(t * 260 * (1 - t * 0.05) + 0.5 * sin(t * 117) * exp(-20 * t) + 0.6 * sin(t * 299) * exp(-8 * t) + sine(341 * t) * exp(-1 * t) * 0.01) * exp(-11 * t) + random() * exp(-10 * t)
+#)for t in time(3)]
+
+s = [0.2 * (par_complement(t * 220) * cos(500 * t * t) - par(t * 220) * sin(500 * t * t)) for t in time(5)]
+
 play(s)
 
 save(s, "temp.wav")
+#"""
