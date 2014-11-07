@@ -77,7 +77,7 @@ srate = get_srate()
 #    sine(t * 260 * (1 - t * 0.05) + 0.5 * sin(t * 117) * exp(-20 * t) + 0.6 * sin(t * 299) * exp(-8 * t) + sine(341 * t) * exp(-1 * t) * 0.01) * exp(-11 * t) + random() * exp(-10 * t)
 #)for t in time(3)]
 
-s = [0.2 * (par_complement(t * 220) * cos(500 * t * t) - par(t * 220) * sin(500 * t * t)) for t in time(5)]
+s = [0.5 * (cub_complement(t * 220) * cos(500 * t * t) + cub(t * 220) * sin(500 * t * t)) for t in time(5)]
 
 play(s)
 
