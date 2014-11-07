@@ -1,6 +1,6 @@
 from pylab import *
 
-from osc import *
+from waveform import *
 
 N = 1000
 

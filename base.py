@@ -60,3 +60,9 @@ def timeslice(source, *args, **kwargs):
         stop = args[1]
 
     return islice(source, int(math.floor(srate*start)), int(math.floor(srate*stop)))
+
+
+clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)
+
+
+epsilon = 1e-10

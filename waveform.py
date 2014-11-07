@@ -1,10 +1,9 @@
 from math import *
 
+from base import epsilon, clip
+
 __all__ = ["saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "softsaw", "triangle"]
 
-clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)
-
-epsilon = 1e-10
 
 i_pi = 1.0 / pi
 two_pi = 2 * pi

@@ -1,7 +1,7 @@
 from math import *
 
 from base import *
-from osc import *
+from waveform import *
 
 def softsaw_bass(time, freq, velocity=1.0, duration=1.0):
     phase = integrate(freq)

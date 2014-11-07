@@ -5,9 +5,10 @@ from cmath import exp as cexp
 
 from base import *
 from fft import *
-from osc import *
+from waveform import *
 from instrument import *
 from analysis import *
+from series import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -77,7 +78,15 @@ srate = get_srate()
 #    sine(t * 260 * (1 - t * 0.05) + 0.5 * sin(t * 117) * exp(-20 * t) + 0.6 * sin(t * 299) * exp(-8 * t) + sine(341 * t) * exp(-1 * t) * 0.01) * exp(-11 * t) + random() * exp(-10 * t)
 #)for t in time(3)]
 
-s = [0.5 * (cub_complement(t * 220) * cos(500 * t * t) + cub(t * 220) * sin(500 * t * t)) for t in time(5)]
+#s = [0.5 * (cub_complement(t * 220) * cos(500 * t * t) + cub(t * 220) * sin(500 * t * t)) for t in time(5)]
+
+#print(linear_series(0.999999, 1.0, 1.0, 5))
+
+zs = [cexp(1j * t * 6.283 * 220) for t in time(5)]
+
+ss = [z * power_series(z*z, [1 * exp(-t * 2), 0.5 * exp(-t * 3), exp(-10 * t), 0.3 * exp(-3*t), 0.2 * exp(-5 * t), 0.1 * exp(-20 * t)]) + 0.1 * z**7 * constant_series(0.5 * z) * exp(-20 * t) for t, z in zip(time(5), zs)]
+
+s = [0.1 * s.imag for s in ss]
 
 play(s)
 
