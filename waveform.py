@@ -2,7 +2,7 @@ from math import *
 
 from base import epsilon, clip
 
-__all__ = ["saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "softsaw", "triangle"]
+__all__ = ["saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen", "softsaw", "softtriangle", "softsquare", "triangle"]
 
 
 i_pi = 1.0 / pi
@@ -91,10 +91,16 @@ def cub_complement(phase):
         return -141.683313066 + x * (890.871247193 + x * (-1877.70991482 + 1315.78489017 * x))
 
 
-def softsaw(phase, sharpness):
-    x = 2 * pi * phase
-    s = clip(sharpness, epsilon, 1 - epsilon)
-    return atan(s * sin(x) / (1.0 + s * cos(x))) / asin(s)
+def qua(phase):
+    x = phase - floor(phase + 0.5)
+    x2 = x * x
+    return 0.875 - x2 * (15 - 30 * x2)
+
+
+def pen(phase):
+    x = phase - m.floor(phase + 0.5)
+    x2 = x * x
+    return x * (5.96255602510703402 - x2 * (34.0717487148973373 - 40.8860984578768047 * x2))
 
 
 def triangle(phase, bias=0.5):
@@ -105,3 +111,29 @@ def triangle(phase, bias=0.5):
     else:
         x -= bias;
         return 1.0 - (x + x) / (1.0 - bias);
+
+
+def softsaw(phase, sharpness):
+    x = two_pi * phase
+    s = clip(sharpness, epsilon, 1 - epsilon)
+    return atan(s * sin(x) / (1.0 + s * cos(x))) / asin(s)
+
+
+def softtriangle(phase, sharpness):
+    x = two_pi * phase
+    s = clip(sharpness, epsilon, 1 - epsilon)
+    return asin(s * sin(x)) / asin(s)
+
+
+def softsquare(phase, sharpness):
+    x = two_pi * phase
+    s = clip(sharpness, epsilon - 1, 1 - epsilon)
+    return sin(x) / sqrt(1 - s * cos(x) ** 2)
+
+
+def sine(phase):
+    return sin(two_pi * phase)
+
+
+def cosine(phase):
+    return cos(two_pi * phase)
