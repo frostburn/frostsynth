@@ -1,7 +1,7 @@
 from itertools import *
 from math import *
 from random import *
-from cmath import exp as cexp
+from cmath import exp as cexp, log as clog
 
 from base import *
 from fft import *
@@ -84,11 +84,14 @@ srate = get_srate()
 
 zs = [cexp(1j * t * 6.283 * 220) for t in time(5)]
 
-ss = [z * power_series(z*z, [1 * exp(-t * 2), 0.5 * exp(-t * 3), exp(-10 * t), 0.3 * exp(-3*t), 0.2 * exp(-5 * t), 0.1 * exp(-20 * t)]) + 0.1 * z**7 * constant_series(0.5 * z) * exp(-20 * t) for t, z in zip(time(5), zs)]
+#ss = [z * power_series(z*z, [1 * exp(-t * 2), 0.5 * exp(-t * 3), exp(-10 * t), 0.3 * exp(-3*t), 0.2 * exp(-5 * t), 0.1 * exp(-20 * t)]) + 0.1 * z**7 * constant_series(0.5 * z) * exp(-20 * t) for t, z in zip(time(5), zs)]
 
-s = [0.1 * s.imag for s in ss]
+ss = [demiharmonic_series(z) for z in zs]
+
+s = [0.5 * s.real for s in ss]
 
 play(s)
+
 
 save(s, "temp.wav")
 #"""

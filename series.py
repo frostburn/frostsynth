@@ -1,4 +1,7 @@
+from cmath import log as clog, atanh as catanh
+
 from base import epsilon
+
 
 def constant_series(z):
     """
@@ -58,3 +61,51 @@ def power_series(z, cs):
         s *= z
         s += c
     return s
+
+
+def harmonic_series(z):
+    """
+    returns z + z ** 2 / 2 + z ** 3 / 3 + ...
+    """
+    z1 = 1 - z
+    if z1 == 0:
+        return 0
+    return -clog(z1)
+
+
+def biharmonic_series(z):
+    """
+    returns sum(z ** k / (k * (1 + k)) for k in count(1))
+    """
+    if z == 0:
+        return 0
+    z1 = 1 - z
+    if z1 == 0:
+        return 1
+    return 1 + (1/z - 1) * clog(z1)
+
+
+def triharmonic_series(z):
+    """
+    returns 4 * sum(z ** k / (k * (1 + k) * (2 + k)) for k in count(1))
+    """
+    if z == 0:
+        return 0
+    z1 = 1 - z
+    if z1 == 0:
+        return 1
+    zz = z * z
+    term = z1 * z1 * clog(z1)
+    return (zz + zz + zz - z - z - term - term) / zz
+
+
+def demiharmonic_series(z):
+    """
+    returns sum(z ** (2 * k) / (2 * k * (k + 1/2)) for k in count(1))
+    """
+    zz1 = 1 - z * z
+    if z == 0:
+        return 0
+    if zz1 == 0:
+        return 2 - clog(4)
+    return (2 * z - 2 * catanh(z) - z * clog(zz1)) / z
