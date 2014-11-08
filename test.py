@@ -9,6 +9,8 @@ from waveform import *
 from instrument import *
 from analysis import *
 from series import *
+from osc import *
+from filters import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -82,16 +84,33 @@ srate = get_srate()
 
 #print(linear_series(0.999999, 1.0, 1.0, 5))
 
-zs = [cexp(1j * t * 6.283 * 220) for t in time(5)]
+#zs = [cexp(1j * t * 6.283 * 220) for t in time(5)]
 
 #ss = [z * power_series(z*z, [1 * exp(-t * 2), 0.5 * exp(-t * 3), exp(-10 * t), 0.3 * exp(-3*t), 0.2 * exp(-5 * t), 0.1 * exp(-20 * t)]) + 0.1 * z**7 * constant_series(0.5 * z) * exp(-20 * t) for t, z in zip(time(5), zs)]
 
-ss = [demiharmonic_series(z) for z in zs]
+#ss = [demiharmonic_series(z) for z in zs]
 
-s = [0.5 * s.real for s in ss]
+#s = [0.5 * s.real for s in ss]
 
-play(s)
+#s = [v for v in sinehorn_gen(repeat(1000), [0.3 + 6 * (t + 0.1) * exp(-5 * t) for t in time(3)])]
+#s = [sine(1000 * t) for t in time(1)] + s
+"""
+def mix(sources, amplitudes=None):
+    if amplitudes is None:
+        return [sum(samples) for samples in zip(*sources)]
+    else:
+        return [sum(sample * amplitude for sample, amplitude in zip(samples, amplitudes)) for samples in zip(*sources)]
 
+freqs = [200, 220, 300, 325, 335, 400, 450, 500, 550, 630]
 
-save(s, "temp.wav")
+s = mix([[0.1 * sine(f * t) * exp(-10 * t * f * 0.01) for t in time(2)] for f in freqs], [1 / k for k in range(1, 10)])
+"""
+
+s = list(schroeder([1] * 20, 3, 0.5))
+
+print(s)
+
+#play(s)
+
+#save(s, "temp.wav")
 #"""

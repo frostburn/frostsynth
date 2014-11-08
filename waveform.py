@@ -2,7 +2,7 @@ from math import *
 
 from base import epsilon, clip
 
-__all__ = ["saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen", "softsaw", "softtriangle", "softsquare", "triangle"]
+__all__ = ["saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen", "softsaw", "softtriangle", "softsquare", "triangle", "sine", "cosine"]
 
 
 i_pi = 1.0 / pi
