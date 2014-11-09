@@ -15,6 +15,12 @@ def get_srate():
     return _srate
 
 
+def zero(duration, srate=None):
+    if srate is None:
+        srate = _srate
+    return [0.0] * int(duration * srate)
+
+
 def time(duration, t0=0.0, srate=None):
     if srate is None:
         srate = _srate
@@ -66,11 +72,19 @@ def gain(source, g):
     return [s * g for s in source]
 
 
+def gain_gen(source, g):
+    return (s * g for s in source)
+
+
 def mix(sources, amplitudes=None):
     if amplitudes is None:
         return [sum(samples) for samples in zip(*sources)]
     else:
         return [sum(sample * amplitude for sample, amplitude in zip(samples, amplitudes)) for samples in zip(*sources)]
+
+
+def mix_gen(sources):
+    return map(sum, zip(*sources))
 
 
 clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)

@@ -13,7 +13,7 @@ def delay_t(iterable, duration, fillvalue=0.0, srate=None):
     """Delays the evaluation of iterable by 'duration'."""
     if srate is None:
         srate = get_srate()
-    return delay(iterable, int(srate*duration), fillvalue)
+    return delay(iterable, int(srate * duration), fillvalue)
 
 
 def feedforward(source, k, alpha=1.0):
@@ -44,7 +44,35 @@ def comb(source, k, alpha=1.0):
             i = 0
 
 
+def comb_t(source, duration, alpha=1.0, srate=None):
+    if srate is None:
+        srate = get_srate()
+    return comb(source, int(srate * duration), alpha)
+
+
 feedback = comb
+feedback_t = comb_t
+
+
+def filtered_comb(source, k, filter):
+    if k < 1:
+        raise ValueError("Minimum delay is one sample.")
+
+    def output():
+        for sample, d in zip(source, delayed_filtered_output):
+            yield sample + d
+
+    output, output_ = tee(output())
+
+    delayed_filtered_output = delay(filter(output_), k)
+
+    return output
+
+
+def filtered_comb_t(source, duration, filter, srate=None):
+    if srate is None:
+        srate = get_srate()
+    return filtered_comb(source, int(srate * duration), filter)
 
 
 def schroeder(source, k, g=1.0):
@@ -58,6 +86,15 @@ def schroeder(source, k, g=1.0):
         temp = sample - g * buf[i]
         yield gc * temp + buf[i]
         buf[i] = temp
+        i += 1
+        if i == k:
+            i = 0
+
+
+def schroeder_t(source, duration, g=1.0, srate=None):
+    if srate is None:
+        srate = get_srate()
+    return schroeder(source, int(srate * duration), g)
 
 
 def thiran_delay1(source, delta, fillvalue=0.0):

@@ -98,7 +98,7 @@ def qua(phase):
 
 
 def pen(phase):
-    x = phase - m.floor(phase + 0.5)
+    x = phase - floor(phase + 0.5)
     x2 = x * x
     return x * (5.96255602510703402 - x2 * (34.0717487148973373 - 40.8860984578768047 * x2))
 

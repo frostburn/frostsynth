@@ -51,6 +51,10 @@ def pong_filter(source, frequency, decay, srate=None):
     return biquad(source, 1.0, -2.0 * d * cos(w), d * d, 1.0, -cos(w) * d, 0.0)
 
 
+def onepole_lpf(source, d):
+    return onepole(source, 1, -d, 1 - d)
+
+
 #Filters from "Cookbook formulae for audio EQ biquad filter coefficients" by Robert Bristow-Johnson
 #http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
@@ -93,52 +97,54 @@ def dynamic_hpf(source, frequency, Q, srate=None):
     return dynamic_biquad(source, map(_hpf_coefs, frequency, Q, repeat(srate)))
 
 
+#Spam the rest using an exec macro:
+_filter_names=["bpfQ", "bpf0", "notch", "apf"]
+
+_filter_formulas=["""
+    b0 =   Q*alpha
+    b1 =   0
+    b2 =  -Q*alpha
+    a0 =   1 + alpha
+    a1 =  -2*cosw0
+    a2 =   1 - alpha""","""
+    b0 =   alpha
+    b1 =   0
+    b2 =  -alpha
+    a0 =   1 + alpha
+    a1 =  -2*cosw0
+    a2 =   1 - alpha""","""
+    b0 =   1
+    b1 =  -2*cosw0
+    b2 =   1
+    a0 =   1 + alpha
+    a1 =  -2*cosw0
+    a2 =   1 - alpha""","""
+    b0 =   1 - alpha
+    b1 =  -2*cosw0
+    b2 =   1 + alpha
+    a0 =   1 + alpha
+    a1 =  -2*cosw0
+    a2 =   1 - alpha"""]
+
+for name, formula in zip(_filter_names, _filter_formulas):
+    exec("def _" + name + """_coefs(frequency, Q, srate=None):
+    if srate is None:
+        srate = get_srate()
+    w0 = 2.0*pi*frequency / srate
+    cosw0 = cos(w0)
+    alpha = sin(w0) / (2.0 * Q)""" + formula + """
+    return (a0, a1, a2, b0, b1, b2)
+
+
+def """ + name + """(source, frequency, Q=i_sqrt_two, srate=None):
+    return biquad(source, *_""" + name + """_coefs(frequency, Q, srate))
+
+
+def dynamic_""" + name + """(source, frequency, Q, srate=None):
+    return dynamic_biquad(source, map(_""" + name + """_coefs, frequency, Q, repeat(srate)))""")
+
+
 if False:
-    #Spam the rest using an exec macro:
-    _filter_names=["bpfQ", "bpf0", "notch", "apf"]
-
-    _filter_formulas=["""
-        b0 =   Q*alpha
-        b1 =   0
-        b2 =  -Q*alpha
-        a0 =   1 + alpha
-        a1 =  -2*cosw0
-        a2 =   1 - alpha""","""
-        b0 =   alpha
-        b1 =   0
-        b2 =  -alpha
-        a0 =   1 + alpha
-        a1 =  -2*cosw0
-        a2 =   1 - alpha""","""
-        b0 =   1
-        b1 =  -2*cosw0
-        b2 =   1
-        a0 =   1 + alpha
-        a1 =  -2*cosw0
-        a2 =   1 - alpha""","""
-        b0 =   1 - alpha
-        b1 =  -2*cosw0
-        b2 =   1 + alpha
-        a0 =   1 + alpha
-        a1 =  -2*cosw0
-        a2 =   1 - alpha"""]
-                                  
-                     
-    for name, formula in zip(_filter_names, _filter_formulas):
-        exec("""def _"""+name+"""_coefs(frequency, Q, srate=None):
-        if srate is None:
-            srate = get_srate()
-        w0 = 2.0*pi*frequency/srate
-        cosw0 = cos(w0)
-        alpha = sin(w0)/(2.0*Q)"""+formula+"""  
-        return (a0, a1, a2, b0, b1, b2)
-
-    def """+name+"""(source, frequency, Q, srate=None):
-        return biquad(source,*_"""+name+"""_coefs(frequency, Q, srate))
-
-    def dynamic_"""+name+"""(source, frequency, Q, srate=None):
-        return _dynamic_biquad(source, imap(_"""+name+"""_coefs, frequency, Q, repeat(srate)))""")
-
     _filter_names=["peakingEQ", "lowshelf", "highshelf"]
 
     _filter_formulas=["""

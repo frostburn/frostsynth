@@ -39,4 +39,4 @@ def sinepings_gen(amplitudes, frequencies, decays, thetas=None, srate=None):
     if thetas is None:
         thetas = repeat(0)
     sps = [sineping_gen(*params) for params in zip(amplitudes, frequencies, decays, thetas, repeat(srate))]
-    return map(sum, zip(*sps))
+    return mix_gen(sps)
