@@ -11,6 +11,9 @@ from analysis import *
 from series import *
 from osc import *
 from filters import *
+from noise import *
+from additive import *
+from envelope import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -94,23 +97,14 @@ srate = get_srate()
 
 #s = [v for v in sinehorn_gen(repeat(1000), [0.3 + 6 * (t + 0.1) * exp(-5 * t) for t in time(3)])]
 #s = [sine(1000 * t) for t in time(1)] + s
-"""
-def mix(sources, amplitudes=None):
-    if amplitudes is None:
-        return [sum(samples) for samples in zip(*sources)]
-    else:
-        return [sum(sample * amplitude for sample, amplitude in zip(samples, amplitudes)) for samples in zip(*sources)]
 
-freqs = [200, 220, 300, 325, 335, 400, 450, 500, 550, 630]
 
-s = mix([[0.1 * sine(f * t) * exp(-10 * t * f * 0.01) for t in time(2)] for f in freqs], [1 / k for k in range(1, 10)])
-"""
 
-s = list(schroeder([1] * 20, 3, 0.5))
+#s = mix([[0.1 * sine(f * t) * exp(-10 * t * f * 0.01) for t in time(2)] for f in freqs], [1 / k for k in range(1, 10)])
 
-print(s)
+s = snare()
 
-#play(s)
+play(s)
 
-#save(s, "temp.wav")
+save(s, "temp.wav")
 #"""

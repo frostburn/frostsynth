@@ -62,6 +62,13 @@ def timeslice(source, *args, **kwargs):
     return islice(source, int(math.floor(srate*start)), int(math.floor(srate*stop)))
 
 
+def mix(sources, amplitudes=None):
+    if amplitudes is None:
+        return [sum(samples) for samples in zip(*sources)]
+    else:
+        return [sum(sample * amplitude for sample, amplitude in zip(samples, amplitudes)) for samples in zip(*sources)]
+
+
 clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)
 
 

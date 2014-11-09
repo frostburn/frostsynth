@@ -54,26 +54,20 @@ def pong_filter(source, frequency, decay, srate=None):
 #Filters from "Cookbook formulae for audio EQ biquad filter coefficients" by Robert Bristow-Johnson
 #http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
-def _coefs_params(frequency, Q, srate=None):  # TODO: Refactor into _lpf_coefs
+i_sqrt_two = 1.0 / sqrt(2.0)
+
+
+def _lpf_coefs(frequency, Q, srate=None):
     if srate is None:
         srate = get_srate()
     w0 = 2.0 * pi * frequency / srate
     cosw0 = cos(w0)
     alpha = sin(w0) / (2.0 * Q)
 
-    a0 = 1.0 + alpha
-    a1 = -2.0 * cosw0
-    a2 = 1.0 - alpha
-
-    return (a0, a1, a2, w0, cosw0, alpha)
+    return (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, 0.5 * (1.0 - cosw0), 1.0 - cosw0, 0.5 * (1.0 - cosw0))
 
 
-def _lpf_coefs(frequency, Q, srate=None):
-    a0, a1, a2, w0, cosw, alpha = _coefs_params(frequency, Q, srate)
-    return (a0, a1, a2, 0.5 * (1.0 - cosw0), 1.0 - cosw0, 0.5 * (1.0 - cosw0))
-
-
-def lpf(source, frequency, Q, srate=None):
+def lpf(source, frequency, Q=i_sqrt_two, srate=None):
     return biquad(source, *_lpf_coefs(frequency, Q, srate))
 
 
@@ -91,11 +85,13 @@ def _hpf_coefs(frequency, Q, srate=None):
     return (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, 0.5 * (1.0 + cosw0), -1.0 - cosw0, 0.5 * (1.0 + cosw0))
 
 
-def hpf(source, frequency, Q, srate=None):
+def hpf(source, frequency, Q=i_sqrt_two, srate=None):
     return biquad(source, *_hpf_coefs(frequency, Q, srate))
+
 
 def dynamic_hpf(source, frequency, Q, srate=None):
     return dynamic_biquad(source, map(_hpf_coefs, frequency, Q, repeat(srate)))
+
 
 if False:
     #Spam the rest using an exec macro:
