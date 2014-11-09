@@ -8,11 +8,19 @@ from noise import *
 from additive import *
 
 
-def softsaw_bass(time, freq, velocity=1.0, duration=1.0):
-    phase = integrate(freq)
-    sharpness = [exp(-t) * (0.75 + 0.25 * velocity) for t in time]
-    return [(softsaw(p + 0.2 * t, s) + softsaw(p - 0.2 * t, s)) * velocity * 0.25 * exp(-t) * (tanh((duration - t) * 6) + 1.0) for (t, p, s) in zip(time, phase, sharpness)]
+def softsaw_bass(note):
+    phase = integrate_gen(note.get_frequency_gen(), srate=note.srate)
+    time_ = time(note.duration + 1, srate=note.srate)
+    sharpness = decay_envelope_gen(0.75 + 0.25 * note.note_on_velocity, 1, srate=note.srate)
+    return [
+        (softsaw(p + 0.2 * t, s) + softsaw(p - 0.2 * t, s)) *
+        note.note_on_velocity * 0.25 * exp(-t) * (tanh((note.duration - t) * (6 + note.note_off_velocity)) + 1.0)
+        for t, p, s in zip(time_, phase, sharpness)
+    ]
 
+def sine_beep(note):
+    phase = integrate_gen(note.get_frequency_gen(), srate=note.srate)
+    return [note.note_on_velocity * sine(p) for p in timeslice(phase, note.duration, srate=note.srate)]
 
 def snare():
     freqs = [200, 220, 300, 325, 335, 400, 450, 500, 550, 630]

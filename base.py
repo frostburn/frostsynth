@@ -62,6 +62,10 @@ def timeslice(source, *args, **kwargs):
     return islice(source, int(math.floor(srate*start)), int(math.floor(srate*stop)))
 
 
+def gain(source, g):
+    return [s * g for s in source]
+
+
 def mix(sources, amplitudes=None):
     if amplitudes is None:
         return [sum(samples) for samples in zip(*sources)]

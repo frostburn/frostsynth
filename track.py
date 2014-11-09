@@ -1,4 +1,6 @@
 from math import log
+from itertools import repeat
+
 from base import *
 
 
@@ -36,16 +38,73 @@ def ftom(f):
     return 69 + 12 * log(f / 440.0, 2)
 
 
-
-
-
-class Rest:
-    pass
-
-
 #Spam the International names of midi pitches into the namespace.
+pitch_names = {}
 for octave in range(10):
     for i, key in enumerate(["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]):
-        exec(key + str(octave) + "=" + str(12 * (octave + 1) + i))
+        name = key + str(octave)
+        value = 12 * (octave + 1) + i
+        pitch_names[value] = name
+        exec(name + "=" + str(value))
     for i, key in [(-1, "Cb"), (1, "Cs"), (3, "Ds"), (5, "Es"), (4, "Fb"), (6, "Fs"), (8, "Gs"), (10, "As"), (12, "Bs")]:
         exec( key + str(octave) + " = " + str(12 * (octave + 1) + i))
+
+
+class Note(object):
+    def __init__(self, pitch=None, frequency=None, note_on_velocity=None, duration=None, note_off_velocity=None, srate=None):
+        if pitch is not None:
+            if frequency is not None:
+                raise ValueError("Only pitch or frequency can be supplied.")
+            self.frequency = mtof(pitch)
+        else:
+            if frequency is None:
+                raise ValueError("Pitch or frequency must be supplied.")
+            self.frequency = frequency
+        self.pitch = pitch
+        self.note_on_velocity = note_on_velocity
+        self.duration = duration
+        self.note_off_velocity = note_off_velocity
+        self._srate = srate
+
+    @property
+    def srate(self):
+        if self._srate is None:
+            return get_srate()
+        else:
+            return self._srate
+
+    def get_frequency_gen(self):
+        return repeat(self.frequency)
+
+
+class AbsoluteNote(Note):
+    def __init__(self, pitch=None, frequency=None, note_on_time=None, note_on_velocity=None, duration=None, note_off_velocity=None, srate=None):
+        super().__init__(pitch=pitch, frequency=frequency, note_on_velocity=note_on_velocity, duration=duration, note_off_velocity=note_off_velocity, srate=srate)
+        self.note_on_time = note_on_time
+
+    def __lt__(self, other):
+        return self.note_on_time < other.note_on_time
+
+    @property
+    def note_on_sample(self):
+        return int(self.note_on_time * self.srate)
+
+    def __repr__(self):
+        if self.pitch:
+            return "AbsoluteNote(pitch=%s, note_on_time=%s, note_on_velocity=%s, duration=%s, note_off_velocity=%s)" % (
+                pitch_names[self.pitch], self.note_on_time, self.note_on_velocity, self.duration, self.note_off_velocity
+            )
+
+
+def merge(list1, list2, k):
+    result = list1 + [0] * max(0, len(list2) + k - len(list1))
+    result[k:] = [i1 + i2 for i1, i2 in zip(result[k:], list2)]
+    return result
+
+
+def note_list_to_sound(track, instrument):
+    result = []
+    for absolute_note in sorted(track):
+        instrument_sound = instrument(absolute_note)
+        result = merge(result, instrument_sound, absolute_note.note_on_sample)
+    return result

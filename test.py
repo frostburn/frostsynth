@@ -14,6 +14,7 @@ from filters import *
 from noise import *
 from additive import *
 from envelope import *
+from track import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -102,7 +103,55 @@ srate = get_srate()
 
 #s = mix([[0.1 * sine(f * t) * exp(-10 * t * f * 0.01) for t in time(2)] for f in freqs], [1 / k for k in range(1, 10)])
 
-s = snare()
+#for i in range(1000):
+#    n = uniform(1)
+
+note_list = [
+    AbsoluteNote(pitch=E4, note_on_time=0.0, note_on_velocity=0.566929133858, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=0.0, note_on_velocity=0.551181102362, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=0.581818181818, note_on_velocity=0.566929133858, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=C4, note_on_time=1.16363636364, note_on_velocity=0.55905511811, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=1.74545454545, note_on_velocity=0.622047244094, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=2.32727272727, note_on_velocity=0.669291338583, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=2.32727272727, note_on_velocity=0.622047244094, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=2.90909090909, note_on_velocity=0.614173228346, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=3.49090909091, note_on_velocity=0.582677165354, duration=1.05, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=4.65454545455, note_on_velocity=0.590551181102, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=4.65454545455, note_on_velocity=0.606299212598, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=5.23636363636, note_on_velocity=0.606299212598, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=5.81818181818, note_on_velocity=0.590551181102, duration=1.05, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=6.98181818182, note_on_velocity=0.645669291339, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=6.98181818182, note_on_velocity=0.622047244094, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G4, note_on_time=7.56363636364, note_on_velocity=0.661417322835, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G4, note_on_time=8.14545454545, note_on_velocity=0.590551181102, duration=1.05, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=9.30909090909, note_on_velocity=0.574803149606, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=9.30909090909, note_on_velocity=0.614173228346, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=9.89090909091, note_on_velocity=0.543307086614, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=C4, note_on_time=10.4727272727, note_on_velocity=0.55905511811, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=11.0545454545, note_on_velocity=0.629921259843, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=11.6363636364, note_on_velocity=0.661417322835, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=11.6363636364, note_on_velocity=0.622047244094, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=12.2181818182, note_on_velocity=0.59842519685, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=12.8, note_on_velocity=0.582677165354, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=13.3818181818, note_on_velocity=0.606299212598, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=13.9636363636, note_on_velocity=0.590551181102, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=G3, note_on_time=13.9636363636, note_on_velocity=0.614173228346, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=14.5454545455, note_on_velocity=0.582677165354, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E4, note_on_time=15.1272727273, note_on_velocity=0.637795275591, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=D4, note_on_time=15.7090909091, note_on_velocity=0.551181102362, duration=0.525, note_off_velocity=0.0),
+    AbsoluteNote(pitch=C4, note_on_time=16.2909090909, note_on_velocity=0.574803149606, duration=2.21363636364, note_off_velocity=0.0),
+    AbsoluteNote(pitch=E3, note_on_time=16.2909090909, note_on_velocity=0.566929133858, duration=2.21363636364, note_off_velocity=0.0)
+]
+
+s = note_list_to_sound(note_list, softsaw_bass)
+
+s = gain(s, 0.5)
+
+#s = softsaw_bass(AbsoluteNote(pitch=E4, note_on_time=0.0, note_on_velocity=0.566929133858, duration=0.525, note_off_velocity=0.0))
+
+#print(s)
+
+#s = snare()
 
 play(s)
 
