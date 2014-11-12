@@ -35,13 +35,26 @@ def simple_electric_piano(note):
     return [z.real for z in zs]
 
 
+def dirty_steel_drum(note):
+    t = note.duration + 1
+    s = zero_t(t)
+    time_ = time(t)
+    velocity = note.note_on_velocity
+
+    for i, p in zip(range(len(s)), integrate_gen(note.get_frequency_gen())):
+        t = time_[i]
+        s[i] = cub(p + 0.15 * velocity * exp(-t * 7) * s[i - 500] + 0.12 * s[int(i//1.99) - 199] + 0.1 * s[int(i//3.01) - 2000]) * (tanh(note.duration - t) + 1.0) * velocity
+
+    return s
+
+
 def kick(percussion):
     return list(hpf([0.5 * cub((180 + percussion.velocity * 40) * exp(-t * 20.0) / 20.0) for t in time(0.25, srate=percussion.srate)], 20.0, srate=percussion.srate))
 
 
 def snare(percussion):
     freqs = [200, 220, 300, 325, 335, 400, 450, 500, 550, 630]
-    noise = list(lpf(uniform(1), 10000))
+    noise = list(lpf(uniform_t(1), 10000))
     hp_noise = decay_env_gen(hpf(noise, 2000), 0.05 + 0.07 * percussion.velocity, 25)
     noise = decay_env_gen(noise, 0.3, 15)
 
@@ -51,7 +64,7 @@ def snare(percussion):
 
 
 def hihat(percussion):
-    noise = list(lpf(uniform(0.5), 15000))
+    noise = list(lpf(uniform_t(0.5), 15000))
     n400 = decay_env_gen(bpfQ(noise, 400, 3.0), 1.0, 15)
     n3000 = decay_env_gen(bpfQ(noise, 3000, 2.5), 0.5, 17)
     n6000 = decay_env_gen(bpfQ(noise, 6000, 2.5), 0.1 + percussion.velocity * 0.1, 16)

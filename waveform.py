@@ -2,7 +2,10 @@ from math import *
 
 from base import epsilon, clip
 
-__all__ = ["saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen", "softsaw", "softtriangle", "softsquare", "triangle", "sine", "cosine"]
+__all__ = [
+    "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
+    "softsaw", "softtriangle", "softsquare", "square", "triangle", "sine", "cosine"
+]
 
 
 i_pi = 1.0 / pi
@@ -103,10 +106,18 @@ def pen(phase):
     return x * (5.96255602510703402 - x2 * (34.0717487148973373 - 40.8860984578768047 * x2))
 
 
+def square(phase, bias=0.5):
+    x = phase - floor(phase)
+    if x < bias:
+        return 1.0
+    else:
+        return -1.0
+
+
 def triangle(phase, bias=0.5):
     x = phase - floor(phase)
     bias = clip(bias, epsilon, 1.0 - epsilon);
-    if (x < bias):
+    if x < bias:
         return (x + x) / bias - 1.0;
     else:
         x -= bias;

@@ -106,7 +106,7 @@ srate = get_srate()
 #for i in range(1000):
 #    n = uniform(1)
 
-
+"""
 note_list = [AbsoluteNote(pitch=D3, note_on_time=0.0, note_on_velocity=0.787401574803, duration=0.125, note_off_velocity=1.0),
  AbsoluteNote(pitch=Ab3, note_on_time=0.375, note_on_velocity=0.787401574803, duration=0.375, note_off_velocity=1.0),
  AbsoluteNote(pitch=A3, note_on_time=0.75, note_on_velocity=0.787401574803, duration=0.125, note_off_velocity=1.0),
@@ -142,15 +142,16 @@ percussion_list = [AbsolutePercussion(index=42, note_on_time=0.0, velocity=0.787
  AbsolutePercussion(index=42, note_on_time=1.5, velocity=0.787401574803),
  AbsolutePercussion(index=38, note_on_time=1.5, velocity=0.787401574803),
  AbsolutePercussion(index=42, note_on_time=1.75, velocity=0.787401574803)]
+ """
 
 
-s = note_list_to_sound(note_list, simple_electric_piano)
+#s = note_list_to_sound(note_list, dirty_steel_drum)
 
-#s = gain(s, 0.5)
+#s = gain(s, 0.3)
 
-p = percussion_list_to_sound(loop(percussion_list, 4, 2.0), percussion_bank)
+#p = percussion_list_to_sound(loop(percussion_list, 4, 2.0), percussion_bank)
 
-s = gain(merge(s, p, 0), 0.5)
+#s = gain(merge(s, p, 0), 0.5)
 
 
 #s = softsaw_bass(AbsoluteNote(pitch=E4, note_on_time=0.0, note_on_velocity=0.566929133858, duration=0.525, note_off_velocity=0.0))
@@ -166,18 +167,7 @@ s = gain(merge(s, p, 0), 0.5)
 #s = schroeder_t(s, 0.017, 0.3)
 
 
-def reverb(source):
-    g = 0.45
-    d = 0.6
-    lpf_ = lambda s: onepole(s, 1, -d, g * (1 - d))
-
-    def lbcf(source, duration):
-        return filtered_comb_t(s, 0.05, lpf_)
-
-    s0, s1, s2 = tee(source, 3)
-    return gain_gen(schroeder_t(schroeder_t(mix_gen([lbcf(s0, 0.035), lbcf(s1, 0.011), lbcf(s2, 0.027)]), 0.0057, 0.5), 0.0091, 0.5), 0.3)
-
-s = list(reverb(s))
+#s = list(reverb(s))
 
 #s = timeslice(s, 2)
 
@@ -186,6 +176,39 @@ s = list(reverb(s))
 #cs = filtered_comb(l, 3, lambda s: onepole_lpf(s, 0.5))
 
 #print(list(cs))
+"""
+dt = 1.0 / get_srate()
+
+s = [exp(-2000000 * (t - 0.01) ** 2) for t in time(0.02)] + zero(3)
+
+def signal():
+    for i in range(len(s)):
+        t = i * dt
+        yield cub(t * 220 + 0.3 * s[i - 21]) * s[i - 102] * 1.6
+d = lpf(dc_block(signal()), 1000)
+#d = signal()
+
+for i in range(len(s)):
+    s[i] = s[i] + next(d)
+
+s = gain(s, 0.5)
+"""
+
+s = wavein.open("cymbal.wav")
+
+s += zero((len(s) // 4096 + 1) * 4096 - len(s))
+
+n = uniform(len(s))
+
+train = [[abs(z) for z in w] for w in fft_train(s, window_size=1024, windowing=False)]
+#n_train = fft_train(n, window_size=1024)
+#s = ifft_train([0.05 * sz * nz for sz, nz in zip(sw, nw)] for sw, nw in zip(train, n_train))
+
+#sw = [sum(t) for t in zip(*train[:5])]
+print(len(train))
+sw = train[3]
+n_train = fft_train(n, window_size=1024, include_time=True)
+s = ifft_train([random() * 0.1 * abs(sz) * nz * exp(-t * 5) for sz, nz in zip(sw, nw)] for t, nw in n_train)
 
 play(s)
 

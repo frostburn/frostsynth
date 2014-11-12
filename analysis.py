@@ -33,13 +33,16 @@ def polar_decomposition(signal):
     return zip(rs, unwrap_phase(phis))
 
 
-def fft_train(signal, window_size=4096, include_time=False):
+def fft_train(signal, window_size=4096, include_time=False, windowing=True):
     if window_size < 4:
         raise ValueError("Too small window_size.")
     if window_size & (window_size - 1) != 0:
         raise ValueError("Only power of two window_sizes supported.")
     pad_size = window_size // 4
-    window_function = [0.0] * pad_size + [1.0 - cos(2 * pi * i / (2 * pad_size)) for i in range(pad_size * 2)] + [0.0] * pad_size
+    if windowing:
+        window_function = [0.0] * pad_size + [1.0 - cos(2 * pi * i / (2 * pad_size)) for i in range(pad_size * 2)] + [0.0] * pad_size
+    else:
+        window_function = [1.0] * window_size
     assert(len(window_function) == window_size)
     signal = [0.0] * 2 * pad_size + signal + [0.0] * 2 * pad_size
     if (len(signal) % window_size != 0):
@@ -55,14 +58,19 @@ def fft_train(signal, window_size=4096, include_time=False):
             yield rdft
 
 
-def ifft_train(train):
+def ifft_train(train, clip=True):
     result = irfft(next(train))
+    N = len(result) // 2
     M = 3 * len(result) // 4
     for window in train:
         signal = irfft(window)
         result[-M:] = [r + s for r, s in zip(result[-M:], signal[:M])]
         result += signal[M:]
-    return result
+    if clip:
+        # TODO: Fix the end clip
+        return result[N:-N]
+    else:
+        return result
 
 
 def freq_enumerate(window):

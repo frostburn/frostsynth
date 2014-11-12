@@ -15,10 +15,14 @@ def get_srate():
     return _srate
 
 
-def zero(duration, srate=None):
+def zero(k):
+    return [0.0] * k
+
+
+def zero_t(duration, srate=None):
     if srate is None:
         srate = _srate
-    return [0.0] * int(duration * srate)
+    return zero(int(duration * srate))
 
 
 def time(duration, t0=0.0, srate=None):
