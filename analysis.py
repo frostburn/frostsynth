@@ -1,16 +1,20 @@
 from math import cos, pi
 from cmath import polar
-from fft import *
+from itertools import count
 
 from base import get_srate
+from fft import *
+
+
+two_pi = 2 * pi
 
 
 def delta_phi(phi1, phi2):
     delta = phi2 - phi1
     if delta < -pi:
-        delta += 2 * pi
+        delta += two_pi
     elif delta > pi:
-        delta -= 2 * pi
+        delta -= two_pi
     return delta
 
 
@@ -40,7 +44,7 @@ def fft_train(signal, window_size=4096, include_time=False, windowing=True):
         raise ValueError("Only power of two window_sizes supported.")
     pad_size = window_size // 4
     if windowing:
-        window_function = [0.0] * pad_size + [1.0 - cos(2 * pi * i / (2 * pad_size)) for i in range(pad_size * 2)] + [0.0] * pad_size
+        window_function = [0.0] * pad_size + [1.0 - cos(two_pi * i / (2 * pad_size)) for i in range(pad_size * 2)] + [0.0] * pad_size
     else:
         window_function = [1.0] * window_size
     assert(len(window_function) == window_size)
@@ -56,6 +60,12 @@ def fft_train(signal, window_size=4096, include_time=False, windowing=True):
             yield ((i - 2 * pad_size) * dt, rdft)
         else:
             yield rdft
+
+
+def fft_train_dt(window_size=4096, srate=None):
+    if srate is None:
+        srate = get_srate()
+    return window_size // 4 / srate
 
 
 def ifft_train(train, clip=True):
@@ -77,3 +87,28 @@ def freq_enumerate(window):
     srate = get_srate()
     df = srate / (len(window) * 2 - 1)
     return [(i * df, b) for i, b in enumerate(window)]
+
+
+def train_window(window_size=4096, oversampling=2):
+    # TODO: Check window_size and oversampling
+    srate = get_srate()
+    df = srate / window_size
+    dt = window_size // oversampling / srate
+    return ([i * df for i in range(window_size // 2 + 1)], dt)
+
+
+def process_window_train(train, oversampling=2, clip=True):
+    buf = pseudo_irfft(next(train))
+    # TODO: Proper oversampling
+    window_size = len(buf)
+    N = len(buf) // 2
+    window_function = [1.0 - cos(two_pi * i / window_size) for i in range(window_size)]
+    buf = [s * w for s, w in zip(buf, window_function)]
+    if not clip:
+        for s in buf[:N]:
+            yield s
+    for window in train:
+        window = [s * w for s, w in zip(pseudo_irfft(window), window_function)]
+        for s in [b + s for b, s in zip(buf[N:], window)]:
+            yield s
+        buf = window

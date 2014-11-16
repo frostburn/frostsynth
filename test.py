@@ -194,6 +194,7 @@ for i in range(len(s)):
 s = gain(s, 0.5)
 """
 
+"""
 s = wavein.open("cymbal.wav")
 
 s += zero((len(s) // 4096 + 1) * 4096 - len(s))
@@ -209,6 +210,32 @@ print(len(train))
 sw = train[3]
 n_train = fft_train(n, window_size=1024, include_time=True)
 s = ifft_train([random() * 0.1 * abs(sz) * nz * exp(-t * 5) for sz, nz in zip(sw, nw)] for t, nw in n_train)
+"""
+
+
+def train_g():
+    noise = list(hpf(hpf(timeslice(wavein.open("heivaan.wav"), 0.5, 2.1), 500), 500))
+    train = fft_train(noise, include_time=True)
+    p = [par(220 * t + cos(3.5 * t) * 10) for t in time_k(len(noise))]
+    p_train = fft_train(p)
+    for (t, window), pwindow in zip(train, p_train):
+        result = []
+        for n, p in zip(window, pwindow):
+            t0 = (t - 0.15) * 4
+            t1 = (t - 0.95) * 6
+            t2 = (t - 1.4) * 4
+            mu = (exp(-t0**2) + exp(-t1**2) + exp(-t2 ** 2) ) * 0.7
+            np = abs(n) * p
+            result.append(np + mu * (n - np))
+        yield result
+
+
+#s = ifft_train(train_g())
+#s = gain(s, 0.38)
+
+f = 110
+
+s = [0.5 * pen(f * t + cub(0.5 * 7 * f * t) * exp(-3 * t)) * exp(-4 * t) for t in time(2)]
 
 play(s)
 

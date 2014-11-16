@@ -45,6 +45,18 @@ def irfft(x):
     return [z.real for z in ifft(x + [0.0] * (len(x) - 2))]
 
 
+def unnormalized_ifft(x):
+    return [z.conjugate() for z in fft([z.conjugate() for z in x])]
+
+
+def unnormalized_irfft(x):
+    return [z.real for z in unnormalized_ifft(x + [0.0] * (len(x) - 2))]
+
+
+def pseudo_irfft(x):
+    return [z.real for z in fft(x + [0.0] * (len(x) - 2))]
+
+
 def pad(x):
     N = 1
     while N < len(x):

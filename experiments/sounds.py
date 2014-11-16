@@ -25,3 +25,28 @@ d = lpf(dc_block(signal()), 1000)
 
 for i in range(len(s)):
     s[i] = s[i] + next(d)
+
+# Cheap cymbal
+def train_g():
+    noise = uniform_t(3)
+    train = fft_train(noise, include_time=True)
+    for t, window in train:
+        result = []
+        for f, n in freq_enumerate(window):
+            x = f / 20000.0
+            result.append(n * (0.25 + sin(71 * x + 3 * cos(27 * x)) ** 4) * x * exp(-8 * x) * random() ** 2 * exp(-5 * t * (0.5 * x + 1)))
+        yield result
+
+s = ifft_train(train_g())
+
+s = gain(s, 20.0)
+
+# Cool FM bass
+f = 50
+
+s = [0.5 * sine(f * 4.1 * t + cosine(f * t) * exp(-5 * t)) * exp(-6 * t) for t in time(2)]
+
+# FM Bell
+f = 880
+
+s = [0.5 * pen(f * t + cub(0.5 * 7 * f * t) * exp(-3 * t)) * exp(-4 * t) for t in time(2)]

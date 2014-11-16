@@ -25,6 +25,13 @@ def zero_t(duration, srate=None):
     return zero(int(duration * srate))
 
 
+def time_k(k, t0=0.0, srate=None):
+    if srate is None:
+        srate = _srate
+    dt = 1.0 / srate
+    return [t0 + i * dt for i in range(k)]
+
+
 def time(duration, t0=0.0, srate=None):
     if srate is None:
         srate = _srate
