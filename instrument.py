@@ -48,6 +48,22 @@ def dirty_steel_drum(note):
     return s
 
 
+def log_drum(note):
+    num_partials = 50
+    r = list(range(1, num_partials + 1))
+    return hold_release_env(
+        bl_sinepings_gen(
+            [note.note_on_velocity * 0.4 / k ** (2.0 - note.note_on_velocity * 0.8) for k in r],
+            [note.frequency * (log(k) + 1) for k in r],
+            [2 + k for k in r],
+            [5 * (k - 1) ** 1.9 for k in r],
+            srate=note.srate
+        ),
+        note.duration, 0.15 - 0.05 * note.note_off_velocity,
+        srate=note.srate
+    )
+
+
 def kick(percussion):
     return list(hpf([0.5 * cub((180 + percussion.velocity * 40) * exp(-t * 20.0) / 20.0) for t in time(0.25, srate=percussion.srate)], 20.0, srate=percussion.srate))
 

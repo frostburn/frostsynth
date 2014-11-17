@@ -1,15 +1,11 @@
 from math import *
 
-from base import epsilon, clip
+from base import epsilon, clip, two_pi, i_pi
 
 __all__ = [
     "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
     "softsaw", "softtriangle", "softsquare", "square", "triangle", "sine", "cosine"
 ]
-
-
-i_pi = 1.0 / pi
-two_pi = 2 * pi
 
 
 def saw(phase):

@@ -76,7 +76,7 @@ def timeslice(source, *args, **kwargs):
         start = args[0]
         stop = args[1]
 
-    return islice(source, int(math.floor(srate*start)), int(math.floor(srate*stop)))
+    return islice(source, int(srate * start), int(srate * stop))
 
 
 def gain(source, g):
@@ -102,3 +102,9 @@ clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else 
 
 
 epsilon = 1e-10
+
+
+two_pi = 2.0 * math.pi
+
+
+i_pi = 1.0 / math.pi

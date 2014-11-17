@@ -106,7 +106,6 @@ srate = get_srate()
 #for i in range(1000):
 #    n = uniform(1)
 
-"""
 note_list = [AbsoluteNote(pitch=D3, note_on_time=0.0, note_on_velocity=0.787401574803, duration=0.125, note_off_velocity=1.0),
  AbsoluteNote(pitch=Ab3, note_on_time=0.375, note_on_velocity=0.787401574803, duration=0.375, note_off_velocity=1.0),
  AbsoluteNote(pitch=A3, note_on_time=0.75, note_on_velocity=0.787401574803, duration=0.125, note_off_velocity=1.0),
@@ -142,7 +141,7 @@ percussion_list = [AbsolutePercussion(index=42, note_on_time=0.0, velocity=0.787
  AbsolutePercussion(index=42, note_on_time=1.5, velocity=0.787401574803),
  AbsolutePercussion(index=38, note_on_time=1.5, velocity=0.787401574803),
  AbsolutePercussion(index=42, note_on_time=1.75, velocity=0.787401574803)]
- """
+
 
 
 #s = note_list_to_sound(note_list, dirty_steel_drum)
@@ -233,9 +232,21 @@ def train_g():
 #s = ifft_train(train_g())
 #s = gain(s, 0.38)
 
-f = 110
+#f = 220
 
-s = [0.5 * pen(f * t + cub(0.5 * 7 * f * t) * exp(-3 * t)) * exp(-4 * t) for t in time(2)]
+#s = [4.5 * pen(f * t + 0.1 * cub(2 * f * t) * exp(-3 * t)) * exp(-4 * t)  for t in time(2)]
+
+#s = onezero(s, 1.0, -1.0, 1.0)
+
+#note = AbsoluteNote(pitch=D4, note_on_time=1.25, note_on_velocity=0.787401574803, duration=2.125, note_off_velocity=1.0)
+
+#s = list(bl_gen(log_drum_coefs, [220.0 for t in time(4)], max_partials=100))
+
+#s = log_drum(note)
+
+
+s = note_list_to_sound(note_list, log_drum)
+s = gain(s, 0.3)
 
 play(s)
 
