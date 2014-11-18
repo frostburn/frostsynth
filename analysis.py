@@ -86,6 +86,12 @@ def freq_enumerate(window):
     return [(i * df, b) for i, b in enumerate(window)]
 
 
+def freq_window(window_size=4096, srate=None):
+    srate = get_srate(srate)
+    df = srate / window_size
+    return [i * df for i in range(window_size // 2 + 1)]
+
+
 def train_window(window_size=4096, oversampling=2):
     # TODO: Check window_size and oversampling
     srate = get_srate()
@@ -95,7 +101,7 @@ def train_window(window_size=4096, oversampling=2):
 
 
 def process_window_train(train, oversampling=2, clip=True):
-    buf = pseudo_irfft(next(train))
+    buf = irfft(next(train))
     # TODO: Proper oversampling
     window_size = len(buf)
     N = len(buf) // 2

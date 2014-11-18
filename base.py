@@ -11,8 +11,11 @@ def set_srate(srate=44100.0):
     _srate = srate
 
 
-def get_srate():
-    return _srate
+def get_srate(default=None):
+    if default is None:
+        return _srate
+    else:
+        return default
 
 
 def zero(k):

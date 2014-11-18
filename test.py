@@ -15,6 +15,7 @@ from noise import *
 from additive import *
 from envelope import *
 from track import *
+from resample import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -245,8 +246,52 @@ def train_g():
 #s = log_drum(note)
 
 
-s = note_list_to_sound(note_list, log_drum)
-s = gain(s, 0.3)
+#s = note_list_to_sound(note_list, log_drum)
+#s = gain(s, 0.3)
+
+def train_g():
+    window, dt = train_window()
+    result = []
+    for f in window:
+        x = (f - 1000) / 20000.0
+        result.append(0.0001 * exp(-100 * x**2) * cexp(two_pi * random()))
+    result_even = []
+    for i in range(len(result)):
+        result_even.append(-(-1) ** i * result[i])
+    while True:
+        yield result
+        yield result_even
+
+#s = list(timeslice(process_window_train(train_g()), 1))
+
+#w = [0.5 * cunit() * cosine(f / 1000.0) ** 64 * (500.0 / (f + 1)) ** 2 * (f > 400) for f in freq_window(1 << 16)]
+
+#w = [10 * cunit() * (exp(-0.01 * (f - 500) ** 2) + exp(-0.01 * (f - 1000) ** 2) + exp(-0.01 * (f - 2000) ** 2)) for f in freq_window(1 << 16)]
+
+freq = 220
+
+#w = [10 * cunit() * exp(-200 * sin(pi * f / freq) ** 2) * (2 * f > freq) * ((f + 0.01) / freq) ** -1 for f in freq_window(1 << 16)]
+
+w = []
+for f in freq_window(1 << 16):
+    s = 0.0
+    for e in range(16):
+        p = exp(-0.02 * (f - freq * 2 ** e) ** 2)
+        p += exp(-0.02 * (f - freq * 3 ** e) ** 2) * 0.8 / (e + 1)
+        p += exp(-0.02 * (f - freq * 5 ** e) ** 2) * 0.4 / (e + 1)
+        if e > 3:
+            p /= (e - 3) ** 2
+        s += p
+    s += exp(-0.02 * (f - 6 * freq) ** 2) * 0.5
+    s += exp(-0.02 * (f - 10 * freq) ** 2) * 0.2
+    w.append(cunit() * s * 5)
+
+
+s = pseudo_norm_irfft(w)
+
+s = list(resampler3_gen(s, (1.0 + 0.01 * sine(5 * t) for t in time_gen())))
+
+#s *= 2
 
 play(s)
 
