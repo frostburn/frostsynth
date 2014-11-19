@@ -68,7 +68,7 @@ def integrate(source, srate=None):
 def timeslice(source, *args, **kwargs):
     """timeslice(iterable[,start], stop, srate=None) --> elements of iterable between times start and stop."""
     if "srate" in kwargs:
-        srate = kwargs["srate"]
+        srate = get_srate(kwargs["srate"])
     else:
         srate = _srate
     

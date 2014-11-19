@@ -8,6 +8,8 @@ from envelope import *
 from noise import *
 from series import *
 from additive import *
+from analysis import *
+from resample import *
 
 # TODO: Pass srate around correctly
 
@@ -28,11 +30,45 @@ def softsaw_bass(note):
     ]
 
 
+def bass(note):
+    phase = integrate_gen(note.get_frequency_gen(), srate=note.srate)
+    m = 4.0 + exp(-note.frequency)
+    return [note.note_on_velocity * 0.3 * pen(p * m + pen(p) * exp(-5 * t) * (0.5 + note.note_on_velocity)) * exp(-6 * t) * (tanh((note.duration - t) * (6 + note.note_off_velocity)) + 1.0) for t, p in zip(time(2), phase)]
+
+
 def simple_electric_piano(note):
     time_ = time(note.duration + 1)
     zs = [cexp(2j * pi * f * t) for t, f in zip(time_, note.get_frequency_gen())]
     zs = [(0.1 * z * cexp(0.9 * exp(-t * 2) * z) + 0.025 * z ** 5 * constant_series(0.8 * exp(-t * 10) * z ** 2)) * (1 + tanh((note.duration - t) * 20)) * tanh(t * 200) for t, z in zip(time_, zs)]
     return [z.real for z in zs]
+
+
+def organ(note):
+    # TODO: note.srate
+    freq = note.frequency
+
+    w = []
+    for f in freq_window(1 << 16):
+        s = 0.0
+        for e in range(16):
+            p = exp(-0.02 * (f - freq * 2 ** e) ** 2)
+            p += exp(-0.02 * (f - freq * 3 ** e) ** 2) * 0.8 / (e + 1)
+            p += exp(-0.02 * (f - freq * 5 ** e) ** 2) * 0.4 / (e + 1)
+            if e > 3:
+                p /= (e - 3) ** 2
+            s += p
+        s += exp(-0.02 * (f - 6 * freq) ** 2) * 0.5
+        s += exp(-0.02 * (f - 10 * freq) ** 2) * 0.2
+        w.append(cunit() * s * 5)
+
+
+    s = pseudo_norm_irfft(w)
+
+    s = cycle(s)
+
+    ratio = (freq / f for f in note.get_frequency_gen())
+
+    return hold_release_env(resampler1_gen(s, ratio), note.duration, 0.1 - 0.04 * note.note_off_velocity)
 
 
 def dirty_steel_drum(note):
@@ -89,8 +125,22 @@ def hihat(percussion):
     return gain(mix([noise, n400, n6000, n12000]), 0.3 * percussion.velocity)
 
 
+def hihat2(percussion):
+    def train_g():
+        noise = uniform_t(0.4)
+        train = fft_train(noise, include_time=True)
+        for t, window in train:
+            result = []
+            for f, n in freq_enumerate(window):
+                x = f / 20000.0
+                result.append(percussion.velocity * 30 * n * (0.25 + sin(143 * x + 4 * cos(104 * x)) ** 4) * x * exp(-(8 - percussion.velocity) * x) * random() ** 2 * exp(-15 * t * (0.5 * x + 1)))
+            yield result
+
+    return list(ifft_train(train_g()))
+
+
 percussion_bank = {
     36: kick,
     38: snare,
-    42: hihat,
+    42: hihat2,
 }

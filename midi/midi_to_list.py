@@ -45,33 +45,34 @@ for octave in range(10):
 
 percussion_map = {36: "Bass Drum", 42: "Closed Hi-Hat", 28: "Snare Drum"}
 
-pattern = midi.read_midifile("ovela2.mid")
+pattern = midi.read_midifile("organ_groove.midi")
 #pattern.make_ticks_rel()
 tempo = 500000
 resolution = float(pattern.resolution)
 tick_time = tempo / resolution / 1000000.0
-track = pattern[0]
+#track = pattern[0]
 
-notes = [0.0] * 128
-result = []
-running_tick = 0
-for event in track:
-    running_tick += event.tick
-    time = running_tick * tick_time
-    is_percussion = isinstance(event, midi.NoteEvent) and event.channel == 9
-    is_note_on = isinstance(event, midi.NoteOnEvent) and event.get_velocity() > 0
-    is_note_off = isinstance(event, midi.NoteOffEvent) or (isinstance(event, midi.NoteOnEvent) and event.get_velocity() == 0)
-    if is_percussion:
-        if is_note_on:
-            result.append(Percussion(event, time))
-    else:
-        if is_note_on:
-            notes[event.get_pitch()] = Note(event, time)
-        elif is_note_off:
-            note = notes[event.get_pitch()]
-            note.note_off(event, time)
-            result.append(note)
+for track in pattern:
+    notes = [0.0] * 128
+    result = []
+    running_tick = 0
+    for event in track:
+        running_tick += event.tick
+        time = running_tick * tick_time
+        is_percussion = isinstance(event, midi.NoteEvent) and event.channel == 9
+        is_note_on = isinstance(event, midi.NoteOnEvent) and event.get_velocity() > 0
+        is_note_off = isinstance(event, midi.NoteOffEvent) or (isinstance(event, midi.NoteOnEvent) and event.get_velocity() == 0)
+        if is_percussion:
+            if is_note_on:
+                result.append(Percussion(event, time))
+        else:
+            if is_note_on:
+                notes[event.get_pitch()] = Note(event, time)
+            elif is_note_off:
+                note = notes[event.get_pitch()]
+                note.note_off(event, time)
+                result.append(note)
 
-pprint(sorted(result))
+    pprint(sorted(result))
 
 #print pattern

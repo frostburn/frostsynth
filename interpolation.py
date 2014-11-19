@@ -5,6 +5,7 @@ def lagrange_four_point(x, y0, y1, y2, y3):
     a1 = -a3 + 3 * (y2 - y0)
     return y1 + x * (a1 + x * (a2 + x * a3)) * 0.166666666666666666666666
 
+
 def catmull_rom_spline(x, y0, y1, y2, y3):
     """The third order polynomial p(x) with p(0)=y1, p'(0)=y2-y0, p(1)=y2, p'(1)=y3-y1."""
     a3 = y3 - y2 - y0 + y1
