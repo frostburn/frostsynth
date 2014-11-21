@@ -9,6 +9,7 @@ def set_srate(srate=44100.0):
     """Sets the default sampling rate."""
     global _srate
     _srate = srate
+    return _srate
 
 
 def get_srate(default=None):
@@ -26,6 +27,21 @@ def zero_t(duration, srate=None):
     if srate is None:
         srate = _srate
     return zero(int(duration * srate))
+
+def range_t(*args, step=None, srate=None):
+    if srate is None:
+        srate = _srate
+    if len(args) == 1:
+        stop = int(args[0] * srate)
+        return range(stop)
+    elif len(args) == 2:
+        start = int(args[0] * srate)
+        stop = int(args[1] * srate)
+        if step is None:
+            step = 1
+        else:
+            step = int(step * srate)
+        return range(start, stop, step)
 
 
 def time_k(k, t0=0.0, srate=None):

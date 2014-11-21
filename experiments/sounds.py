@@ -72,3 +72,47 @@ for f in freq_window(1 << 16):
 s = pseudo_norm_irfft(w)
 
 s = list(resampler3_gen(s, (1.0 + 0.01 * sine(5 * t) for t in time_gen())))
+
+# Adding resonance to an exitation
+buf = [0.0] * 200
+buf1 = [0.0] * 205
+s = []
+for j in range(int(2 * srate)):
+    t = j / srate
+    i = j % len(buf)
+    i1 = j % len(buf1)
+    e = 0.05 * par(j / len(buf)) * exp(-3 * t) * sine(2 * t)
+    y0 = buf[i] * 0.99 + e
+    y0_1 = buf1[i1] * 0.97 + e
+    buf[i] = y0
+    buf1[i1] = y0_1
+    s.append(y0 + y0_1)
+
+# Variation of the previous
+freq = 100
+
+buf = [0.0] * int(srate / (2.05 * freq))
+buf1 = [0.0] * int(srate / (3.05 * freq))
+s = []
+y0 = 0.0
+y0_1 = 0.0
+for j in range(int(1 * srate)):
+    t = j / srate
+    i = j % len(buf)
+    i1 = j % len(buf1)
+    e0 = duplex(par, freq * j / srate, 0.55) * exp(-1 * t)
+    e = e0 * sine(3 * t)
+    y0 = y0 * 0.2 + buf[i] * 0.77 + e * 0.05
+    y0_1 = y0_1 * 0.2 + buf1[i1] * 0.77 + e * 0.06
+    buf[i] = y0
+    buf1[i1] = y0_1
+    temp = y0 * e + 2 * y0_1 + 0.05 * e + 0.2 * e0
+    s.append(0.5 * temp)
+
+# 16bit Bytebeat generator
+s = []
+for t in range(60 * int(srate)):
+    r = (
+        t * (17 & (t // 3 ** 8) ^ (t // 3 ** 12)) * 40 & (1 << 15 | 1 << 14) + t * (29 & (t // 3 ** 9) ^ t >> 17) * 20 & (1 << 15 - 1)
+    ) & 65535
+    s.append(r / (1 << 15) - 1)

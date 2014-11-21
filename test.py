@@ -181,7 +181,7 @@ percussion_list = [AbsolutePercussion(index=36, note_on_time=0.0, velocity=0.614
  AbsolutePercussion(index=42, note_on_time=1.25, velocity=0.787401574803),
  AbsolutePercussion(index=38, note_on_time=1.5, velocity=0.787401574803),
  AbsolutePercussion(index=42, note_on_time=1.75, velocity=0.787401574803)]
-
+"""
 s = note_list_to_sound(loop(note_list, 2, 8.0), organ)
 
 s = gain(s, 0.5)
@@ -197,7 +197,7 @@ p = gain(p, 0.5)
 s = merge(merge(s, p, 0), b, 0)
 
 s = list(reverb(s))
-
+"""
 #s = softsaw_bass(AbsoluteNote(pitch=E4, note_on_time=0.0, note_on_velocity=0.566929133858, duration=0.525, note_off_velocity=0.0))
 
 #print(s)
@@ -353,9 +353,70 @@ for t in time(1):
 
 s = result
 """
+"""
+s = []
+buf = [0.0] * 300
+buf1 = [0.0] * 301
+buf2 = [0.0] * 302
+y0 = 0.0
+y0_1 = 0.0
+y0_2 = 0.0
+x1 = 0.0
+x1_1 = 0.0
+x1_2 = 0.0
+for j in range(int(2 * srate)):
+    i = j % len(buf)
+    i1 = j % len(buf1)
+    i2 = j % len(buf2)
+    s.append(0.1 * buf[i] + 0.1 * buf1[i1] + 0.1 * buf2[i2])
+    y0 = y0 * 0.845 - buf[i] * 0.8 + x1 * 0.95 + exp(-0.1 * (j-10)**2) + 0.0 * buf2[i2]
+    x1 = buf[i]
+    y0_1 = y0_1 * 0.505 - buf1[i1] * 0.5 + x1_1 * 0.95 + exp(-0.1 * (j-20)**2) + 0.0 * buf[i]
+    x1_1 = buf1[i1]
+    y0_2 = y0_2 * 0.005 - buf2[i2] * 0.05 + x1_2 * 0.95 + exp(-0.1 * (j-30)**2) + 0.0 * buf1[i1]
+    x1_2 = buf2[i2]
+    buf[i] = y0
+    buf1[i1] = y0_1
+    buf2[i2] = y0_2
+"""
 
+"""
+for i in range(12):
+freq = 100
+
+buf = [0.0] * int(srate / (2.05 * freq))
+buf1 = [0.0] * int(srate / (3.05 * freq))
+s = []
+y0 = 0.0
+y0_1 = 0.0
+for j in range(int(1 * srate)):
+    t = j / srate
+    i = j % len(buf)
+    i1 = j % len(buf1)
+    e0 = duplex(par, freq * j / srate, 0.55) * exp(-1 * t)
+    e = e0 * sine(3 * t)
+    y0 = y0 * 0.2 + buf[i] * 0.77 + e * 0.05
+    y0_1 = y0_1 * 0.2 + buf1[i1] * 0.77 + e * 0.06
+    buf[i] = y0
+    buf1[i1] = y0_1
+    temp = y0 * e + 2 * y0_1 + 0.05 * e + 0.2 * e0
+    s.append(0.5 * temp)
+
+"""
+
+#srate = set_srate(srate * 2)
+T = 60
+
+phase = integrate((int("36364689"[k>>13&7])&15) * 50 for k in range_t(T))
+s0 = [0.5 * duplex(par, p) for p in phase]
+
+phase = integrate((((k>>12)^(k>>12)-2)%11) * 100 for k in range_t(T))
+bias = [(k >> 13 & 127) / 256 + 0.1 for k in range_t(T)]
+s1 = [0.5 * duplex(par, p, b) for p, b in zip(phase, bias)]
+
+s = gain(mix([s0, s1]), 0.5)
 
 play(s)
 
+
 save(s, "temp.wav")
-#"""
