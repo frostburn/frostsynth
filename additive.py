@@ -2,6 +2,8 @@ from math import *
 from itertools import *
 
 from base import *
+from fft import *
+from polytable import *
 
 
 def sineping_gen(amplitude, frequency, decay, theta=0, srate=None):
@@ -91,3 +93,14 @@ def square_coefs(k, f, t):
 
 def log_drum_coefs(k, f, t):
     return (0.2 * exp(-t * k) / k ** 1.5, log(k) + 1)
+
+
+def irfft_waveform(window):
+    derivates_window = [6.283185307179586j * b * i for i, b in enumerate(window)]
+    window = rpad(window + [0.0] * len(window))
+    derivates_window = rpad(derivates_window + [0.0] * len(derivates_window))
+    values = unnormalized_irfft(window)
+    derivatives = irfft(derivates_window)
+    ct = CubicTable(zip(values, derivatives), periodic=True)
+    l = len(ct)
+    return lambda p: ct(p * l)

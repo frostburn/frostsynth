@@ -71,3 +71,9 @@ def pad(x):
     while N < len(x):
         N <<= 1
     return x + [0.0] * (N - len(x))
+
+def rpad(x):
+    N = 2
+    while N // 2 + 1 < len(x):
+        N <<= 1
+    return x + [0.0] * (N // 2 + 1 - len(x))

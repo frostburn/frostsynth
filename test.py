@@ -483,16 +483,29 @@ for k in range_t(3):
 
 
 # Wub base
-track = [(A2, 0.5, 0.1), C3, Ds3, Es3, E3]
+track = [(A2, 0.3, 0.1), C3, Ds3, Es3, E3]
 phase = integrate_gen(map(mtof, eased_step_gen(cycle(track))))
-phase = gain_gen(phase, 0.3)
+phase = gain_gen(phase, 0.25)
 
-n = uniform(500)
-st = LinearTable(n, True)
-wf = lambda p: st(len(n) * p)
+#n = uniform(500)
+#st = LinearTable(n, True)
+#st.dc_block()
+#st.integrate()
+#wf = lambda p: st(len(n) * p)
 
-s = [wf(p) for p in timeslice(phase, 10)]
+window = [sin(k + cos(k * 2.3)) * cunit() / k if k > 0 else 0 for k in range(500)]
 
+wf = irfft_waveform(window)
+
+s = [wf(p) for p in timeslice(phase, 5)]
+
+
+
+
+#s = [0.01 * p_c(t * 55) for t in time(1)]
+
+
+"""
 train = fft_train(s, include_time=True)
 
 def train_g():
@@ -500,6 +513,7 @@ def train_g():
         yield [2 * b * (0.2 + exp(-0.0001 * (f - t * 100 - 50)**2) + exp(-0.0001 * (f - t * 100 - 200)**2)) * exp(-0.0001 * f / (1.01 + softsquare(2 * t, 0.9))) for f, b in freq_enumerate(w)]
 
 s = ifft_train(train_g())
+"""
 s = gain(s, 0.1)
 
 play(s)
