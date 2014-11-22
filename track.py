@@ -5,27 +5,67 @@ from base import *
 
 
 def step_sequence_gen(track, click=False, fillvalue=0.0, t=None, srate=None):
-    """Turns list of (value, duration) tuples into a generator that outputs each value for the given duration (defaults to the previous duration or 1). If click is True it emits values only once and fillvalue the rest of the time. Optionally driven by a time generator t which defaults to time in seconds."""
+    """
+    Turns list of (value, duration) tuples into a generator that outputs each value for the given duration (defaults to the previous duration or 1).
+    If click is True it emits values only once and fillvalue the rest of the time. Optionally driven by a time generator t which defaults to time in seconds.
+    """
     if t is None:
-        t = timegen(srate=srate)
+        t = time_gen(srate=srate)
     else:
         t = iter(t)
     t0 = next(t)
     t1 = t0
-    dur = 1
+    duration = 1
     for tple in track:
         if hasattr(tple,'__getitem__'):
             value = tple[0]
             if len(tple) > 1:
-                dur = tple[1]
+                duration = tple[1]
         else:
             value = tple
-        while t0 + dur > t1:
+        while t0 + duration > t1:
             yield value
             if click:
                 value = fillvalue
             t1 = next(t)
         t0 = t1
+
+
+def eased_step_gen(track, t=None, srate=None):
+    """
+    Turns list of (value, duration, ease_duration) tuples into a generator that outputs each value for the given duration (defaults to the previous duration or 1).
+    """
+    if t is None:
+        t = time_gen(srate=srate)
+    else:
+        t = iter(t)
+    t0 = next(t)
+    t1 = t0
+    old_value = None
+    duration = 1
+    ease_duration = 0
+    for tple in track:
+        if hasattr(tple,'__getitem__'):
+            value = tple[0]
+            if len(tple) > 1:
+                duration = tple[1]
+                if len(tple) > 2:
+                    ease_duration = min(tple[2], duration)
+        else:
+            value = tple
+        if old_value is None:
+            old_value = value
+        while t0 + duration > t1:
+            local_t = t1 - t0
+            if local_t < ease_duration:
+                mu = local_t / ease_duration
+                yield old_value + mu * (value - old_value)
+            else:
+                yield value
+            t1 = next(t)
+        t0 = t1
+        old_value = value
+
 
 
 def mtof(p):
@@ -56,10 +96,7 @@ class Event(object):
 
     @property
     def srate(self):
-        if self._srate is None:
-            return get_srate()
-        else:
-            return self._srate
+        return get_srate(self._srate)
 
 
 class Note(Event):

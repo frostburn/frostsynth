@@ -16,6 +16,7 @@ from additive import *
 from envelope import *
 from track import *
 from resample import *
+from polytable import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -405,6 +406,7 @@ for j in range(int(1 * srate)):
 """
 
 #srate = set_srate(srate * 2)
+"""
 T = 60
 
 phase = integrate((int("36364689"[k>>13&7])&15) * 50 for k in range_t(T))
@@ -415,8 +417,91 @@ bias = [(k >> 13 & 127) / 256 + 0.1 for k in range_t(T)]
 s1 = [0.5 * duplex(par, p, b) for p, b in zip(phase, bias)]
 
 s = gain(mix([s0, s1]), 0.5)
+"""
+
+"""
+s = [0.5 * tanh((cis(105 * t) * constant_series(cis(150 * t + 10 * t * t + cub(456 * t) * 0.2) * (0.7 + 0.25 * sine(3 * t)))).imag * par(2 * t)) for t in time(5)]
+s = list(comb_t(s, 0.5, 0.5))
+
+train = fft_train(s, include_time=True)
+
+def train_g():
+    for t, w in train:
+        yield [2 * b * (0.2 + exp(-0.0001 * (f - t * 200 - 200 - t * t * 20)**2) + exp(-0.0001 * (f - t * 300 - 1000)**2)) for f, b in freq_enumerate(w)]
+
+s = ifft_train(train_g())
+"""
+
+"""
+freq = 220
+
+freqs = [k * freq for k in range(1, 20)]
+
+for e in range(14, 16):
+    window_size = (1 << e)
+    df = srate / window_size
+    freqs_appr = [round(f / df) * df for f in freqs]
+    print(freqs_appr)
+    window = [0.0] * (window_size // 2 + 1)
+    for f in freqs:
+        window[int(round(f / df))] = 0.1 * 220.0 / f
+    #window[int(round(220 / df))] = 1.0j
+    s = pseudo_irfft(window)
+    s = timeslice(cycle(s), 1)
+"""
+
+"""
+s = []
+buf = [0.0] * 400
+y0 = 0.0
+x0 = 0.0
+y0_1 = 0.0
+x0_1 = 0.0
+for k in range_t(3):
+    g = -0.99
+    i = k % len(buf)
+    x1 = x0
+    x0 = buf[i] + 0.5 * exp(-0.001 * (k - 1000) ** 2)
+    y0 = -g * y0 + g * x0 + x1
+    x1_1 = x0_1
+    x0_1 = y0
+    y0_1 = -g * y0_1 + g * x0_1 + x1_1
+    buf[i] = y0_1 * 0.9 - y0 * 0.09
+    s.append(y0)
+"""
+
+#track = [(C4, 0.05, 0.0), (E4, 0.05, 0.0), C5, E5, G4]
+#phase = integrate_gen(map(mtof, eased_step_gen(cycle(track))))
+
+#wf = lambda p: softsquare(p*3, sine(p * 0.02))
+#s = list(map(wf, timeslice(phase, 5)))
+
+#n = uniform(200)
+#st = LinearTable(n, True)
+
+#s = [0.2 * st(200 * t * 35) for t in time(2)]
+
+
+# Wub base
+track = [(A2, 0.5, 0.1), C3, Ds3, Es3, E3]
+phase = integrate_gen(map(mtof, eased_step_gen(cycle(track))))
+phase = gain_gen(phase, 0.3)
+
+n = uniform(500)
+st = LinearTable(n, True)
+wf = lambda p: st(len(n) * p)
+
+s = [wf(p) for p in timeslice(phase, 10)]
+
+train = fft_train(s, include_time=True)
+
+def train_g():
+    for t, w in train:
+        yield [2 * b * (0.2 + exp(-0.0001 * (f - t * 100 - 50)**2) + exp(-0.0001 * (f - t * 100 - 200)**2)) * exp(-0.0001 * f / (1.01 + softsquare(2 * t, 0.9))) for f, b in freq_enumerate(w)]
+
+s = ifft_train(train_g())
+s = gain(s, 0.1)
 
 play(s)
-
 
 save(s, "temp.wav")

@@ -62,6 +62,10 @@ def pseudo_norm_irfft(x):
     return [m * z.real for z in fft(x + [0.0] * (len(x) - 2))]
 
 
+def analytic_pfft(x):
+    return [z for z in fft(x + [0.0] * (len(x) - 2))]
+
+
 def pad(x):
     N = 1
     while N < len(x):

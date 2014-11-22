@@ -1,10 +1,12 @@
 from math import *
+from cmath import exp as cexp
 
 from base import epsilon, clip, two_pi, i_pi
 
 __all__ = [
     "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
-    "softsaw", "softtriangle", "softsquare", "square", "triangle", "sine", "cosine", "duplex"
+    "softsaw", "softtriangle", "softsquare", "square", "triangle", "sine", "cosine", "cis",
+    "duplex"
 ]
 
 
@@ -144,6 +146,11 @@ def sine(phase):
 
 def cosine(phase):
     return cos(two_pi * phase)
+
+
+def cis(phase):
+    return cexp(6.283185307179586j * phase)
+
 
 def duplex(func, x, bias=0.5):
     return func(x) - func(x + bias)
