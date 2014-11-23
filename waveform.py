@@ -5,8 +5,10 @@ from base import epsilon, clip, two_pi, i_pi
 
 __all__ = [
     "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
-    "softsaw", "softtriangle", "softsquare", "square", "triangle", "sine", "cosine", "cis",
-    "duplex"
+    "rect", "square", "triangle", "tense",
+    "softsaw", "softrect", "softrect2", "softsquare", "softsquare2", "softtriangle",
+    "sine", "cosine", "cis",
+    "duplex", "bias"
 ]
 
 
@@ -104,6 +106,14 @@ def pen(phase):
     return x * (5.96255602510703402 - x2 * (34.0717487148973373 - 40.8860984578768047 * x2))
 
 
+def rect(phase, duty=0.5):
+    x = phase - floor(phase)
+    if x < duty:
+        return 1.0
+    else:
+        return 0.0
+
+
 def square(phase, bias=0.5):
     x = phase - floor(phase)
     if x < bias:
@@ -114,12 +124,23 @@ def square(phase, bias=0.5):
 
 def triangle(phase, bias=0.5):
     x = phase - floor(phase)
-    bias = clip(bias, epsilon, 1.0 - epsilon);
+    bias = clip(bias, epsilon, 1.0 - epsilon)
     if x < bias:
         return (x + x) / bias - 1.0;
     else:
         x -= bias;
-        return 1.0 - (x + x) / (1.0 - bias);
+        return 1.0 - (x + x) / (1.0 - bias)
+
+
+def tense(phase, bias=0.5, tension=2):
+    x = phase - floor(phase)
+    bias = clip(bias, epsilon, 1.0)
+    if tension < 0.0:
+        tension = 0.0
+    if x < bias:
+        return 1.0 - 2.0 * (x / bias) ** tension
+    else:
+        return 0
 
 
 def softsaw(phase, sharpness):
@@ -128,16 +149,44 @@ def softsaw(phase, sharpness):
     return atan(s * sin(x) / (1.0 + s * cos(x))) / asin(s)
 
 
-def softtriangle(phase, sharpness):
-    x = two_pi * phase
-    s = clip(sharpness, epsilon, 1 - epsilon)
-    return asin(s * sin(x)) / asin(s)
+def _softsquare(phase, sharpness, bias=0.5):
+    return softsaw(phase + 0.5 - bias, sharpness) - softsaw(phase + 0.5, sharpness)
+
+
+def softrect(phase, sharpness, bias=0.2):
+    bottom = _softsquare(0.5 + bias * 0.5, sharpness, bias)
+    top = softsquare2(0.5 * bias, sharpness, bias)
+    return (softsquare2(phase, sharpness, bias) - bottom) / (top - bottom)
+
+
+def softrect2(phase, tension, duty=0.5):
+    if tension < epsilon:
+        tension = epsilon
+    c = cos(pi * duty)
+    top = tanh(tension * (1 + c))
+    bottom = tanh(tension * (c - 1))
+    return (top - tanh(tension * (cosine(phase) + c))) / (top - bottom)
 
 
 def softsquare(phase, sharpness):
     x = two_pi * phase
     s = clip(sharpness, epsilon - 1, 1 - epsilon)
     return sin(x) / sqrt(1 - s * cos(x) ** 2)
+
+
+def softsquare2(phase, tension, bias=0.5):
+    if tension < epsilon:
+        tension = epsilon
+    c = cos(pi * bias)
+    top = tanh(tension * (1 + c))
+    bottom = tanh(tension * (c - 1))
+    return 2 * (tanh(tension * (cosine(phase) + c)) - bottom) / (top - bottom) - 1
+
+
+def softtriangle(phase, sharpness):
+    x = two_pi * phase
+    s = clip(sharpness, epsilon, 1 - epsilon)
+    return asin(s * sin(x)) / asin(s)
 
 
 def sine(phase):
@@ -154,3 +203,11 @@ def cis(phase):
 
 def duplex(func, x, bias=0.5):
     return func(x) - func(x + bias)
+
+
+def bias(phase, bias=0.5):
+    x = phase - floor(phase)
+    if x < bias:
+        return 0.5 * x / bias
+    else:
+        return 0.5 + 0.5 * (x - bias) / (1 - bias)

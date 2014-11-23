@@ -106,6 +106,14 @@ def gain_gen(source, g):
     return (s * g for s in source)
 
 
+def ringm(source0, source1):
+    return [s0 * s1 for s0, s1 in zip(source0, source1)]
+
+
+def ringm_gen(source0, source1):
+    return (s0 * s1 for s0, s1 in zip(source0, source1))
+
+
 def mix(sources, amplitudes=None):
     if amplitudes is None:
         return [sum(samples) for samples in zip(*sources)]

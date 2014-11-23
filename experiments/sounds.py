@@ -156,3 +156,11 @@ def train_g():
 
 s = ifft_train(train_g())
 s = gain(s, 0.1)
+
+# Tweety sawish wave
+def wf(p):
+    p = p - floor(p)
+    if p < 0.5:
+        return 1 - 8 * p * p
+    else:
+        return -sin(p * 439)
