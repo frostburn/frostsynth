@@ -203,7 +203,7 @@ s = list(reverb(s))
 
 #print(s)
 
-#perc = Percussion(velocity=0.787401574803)
+perc = Percussion(velocity=0.787401574803)
 
 #s = gain(snare(perc) + zero(2), 0.7)
 
@@ -506,7 +506,7 @@ phase = gain_gen(phase, 0.33)
 
 wf = lambda p: softrect2(p, p * 0.1, 0.6) * cub(p * 15)
 
-s = [wf(p) for p in timeslice(phase, 5)]
+#s = [wf(p) for p in timeslice(phase, 5)]
 
 
 #s = [0.01 * p_c(t * 55) for t in time(1)]
@@ -521,8 +521,13 @@ def train_g():
 
 s = ifft_train(train_g())
 """
-#s = gain(s, 0.1)
+for i in range(10):
+    s = hihat2(perc)
 
-play(s)
+#x = [1, 1] + [0] * 254
+#for i in range(10000):
+#    fft(x)
 
-save(s, "temp.wav")
+#play(s)
+
+#save(s, "temp.wav")

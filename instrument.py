@@ -127,13 +127,13 @@ def hihat(percussion):
 
 def hihat2(percussion):
     def train_g():
-        noise = uniform_t(0.4)
+        noise = fast_uniform_t(0.4)
         train = fft_train(noise, include_time=True)
         for t, window in train:
             result = []
             for f, n in freq_enumerate(window):
                 x = f / 20000.0
-                result.append(percussion.velocity * 30 * n * (0.25 + sin(143 * x + 4 * cos(104 * x)) ** 4) * x * exp(-(8 - percussion.velocity) * x) * random() ** 2 * exp(-15 * t * (0.5 * x + 1)))
+                result.append(percussion.velocity * 30 * n * (0.25 + sin(143 * x + 4 * cos(104 * x)) ** 4) * x * exp(-(8 - percussion.velocity) * x) * fast_uniform() ** 2 * exp(-15 * t * (0.5 * x + 1)))
             yield result
 
     return list(ifft_train(train_g()))

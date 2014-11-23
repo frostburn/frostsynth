@@ -3,6 +3,12 @@ from cmath import rect
 
 from base import *
 from interpolation import *
+from ffi import uniform as fast_uniform
+
+
+def fast_uniform_t(duration, srate=None):
+    srate = get_srate(srate)
+    return fast_uniform(int(duration * srate))
 
 
 def uniform(k=None, vmin=-1.0, vmax=1.0):
