@@ -198,7 +198,7 @@ def cosine(phase):
 
 
 def cis(phase):
-    return cexp(6.283185307179586j * phase)
+    return cexp(two_pi_j * phase)
 
 
 def duplex(func, x, bias=0.5):

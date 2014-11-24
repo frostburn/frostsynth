@@ -1,4 +1,6 @@
 from math import *
+from cmath import rect, exp as cexp
+
 from base import *
 from filters.base import *
 
@@ -216,4 +218,127 @@ if False:
             y1 = y0
             x0 = next(source)
             y0 = x0 + (y0 + y0 - x0 - x0 + (x0 - y2)*d)*d
-            yield y0  
+            yield y0
+
+
+def resonator(source, b1, frequency, decay, srate=None):
+    """
+    Delayed two pole filter.
+    Peak amplitude_normalized.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    z = rect(1, -two_pi * frequency * dt)
+    a1 = exp(-decay * frequency * dt) * z
+    b1 *= 2j / abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z))
+    y0 = 0.0j
+    for sample in source:
+        y0 = b1 * sample + y0 * a1
+        yield y0.real
+
+
+def dynamic_resonator(source, b1, frequency, decay, srate=None):
+    """
+    Delayed dynamic two pole filter that doesn't suffer from transients.
+    Peak amplitude normalized.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    for sample, b, f, d in zip(source, b1, frequency, decay):
+        z = rect(1, -two_pi * f * dt)
+        a1 = exp(-d * f * dt) * z
+        i_norm_j = 2j / abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z))
+        y0 = i_norm_j * b * sample + y0 * a1
+        yield y0.real
+
+
+def _nyquist_twozero(source):
+    source = iter(source)
+    x2 = next(source)
+    yield x2
+    x1 = next(source)
+    yield x1 + x2 + x2
+    while True:
+        x0 = next(source)
+        yield x0 + x1 + x1 + x2
+        x2 = next(source)
+        yield x2 + x0 + x0 + x1
+        x1 = next(source)
+        yield x1 + x2 + x2 + x0
+
+
+def dynamic_lowpass(source, frequency, decay, srate=None):
+    """
+    Dynamic low pass filter that doesn't suffer from transients.
+    Normalized at DC.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    for sample, f, d in zip(_nyquist_twozero(source), frequency, decay):
+        a1 = cexp(-(d + two_pi_j) * f * dt)
+        i_norm_j = -0.25j * ((a1.real - 1) ** 2 + a1.imag ** 2) / a1.imag
+        y0 = i_norm_j * sample + y0 * a1
+        yield y0.real
+
+
+def _dc_twozero(source):
+    source = iter(source)
+    x2 = next(source)
+    yield x2
+    x1 = next(source)
+    yield x1 - x2 - x2
+    while True:
+        x0 = next(source)
+        yield x0 - x1 - x1 + x2
+        x2 = next(source)
+        yield x2 - x0 - x0 + x1
+        x1 = next(source)
+        yield x1 - x2 - x2 + x0
+
+
+def dynamic_highpass(source, frequency, decay, srate=None):
+    """
+    Dynamic high pass filter that doesn't suffer from transients.
+    Normalized at nyquist.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    for sample, f, d in zip(_dc_twozero(source), frequency, decay):
+        a1 = cexp(-(d + two_pi_j) * f * dt)
+        i_norm_j = -0.25j * ((a1.real + 1) ** 2 + a1.imag ** 2) / a1.imag
+        y0 = i_norm_j * sample + y0 * a1
+        yield y0.real
+
+
+def _dc_nyquist_twozero(source):
+    source = iter(source)
+    x2 = next(source)
+    yield x2
+    x1 = next(source)
+    yield x1
+    while True:
+        x0 = next(source)
+        yield x0 - x2
+        x2 = next(source)
+        yield x2 - x1
+        x1 = next(source)
+        yield x1 - x0
+
+
+def dynamic_bandpass(source, frequency, decay, srate=None):
+    """
+    Dynamic band pass filter that doesn't suffer from transients.
+    Peak amplitude normalized.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    for sample, f, d in zip(_dc_nyquist_twozero(source), frequency, decay):
+        z = rect(1, -two_pi * f * dt)
+        a1 = exp(-d * f * dt) * z
+        i_norm_j = 2j / (abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z)) * abs(1 - z * z))
+        y0 = i_norm_j * sample + y0 * a1
+        yield y0.real

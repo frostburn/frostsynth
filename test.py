@@ -521,13 +521,103 @@ def train_g():
 
 s = ifft_train(train_g())
 """
-for i in range(10):
-    s = hihat2(perc)
+#for i in range(10):
+#    s = hihat2(perc)
 
-#x = [1, 1] + [0] * 254
-#for i in range(10000):
-#    fft(x)
 
-#play(s)
+#TODO: Why is it broken?
+def dynamic_allpass(source, frequency, decay, srate=None):
+    """
+    Dynamic all pass filter that doesn't suffer from transients.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    x1 = 0.0j
+    for sample, f, d in zip(source, frequency, decay):
+        a1 = cexp(-(d + two_pi_j) * f * dt)
+        y0 = -a1.conjugate() * sample + x1 + y0 * a1
+        x1 = sample
+        yield y0.real
 
-#save(s, "temp.wav")
+"""
+def f_factored(source,...):
+    a1 = a1_r + a1_i * 1j
+    y0_r = 0
+    y0_i = 0
+    for sample in source:
+        y0_r = y0_r * a1_r - y0_i * a1_i
+        y0_i = sample + y0_r * a1_i + y0_i * a1_r
+        yield y0_r
+
+    y[n+1] = 1j * source[n] + y[n] * a1
+
+    y_r[n+1] = y_r[n] * a1_r - y_i[n] * a1_i
+    y_i[n+1] = source[n] + y_r[n] * a1_i + y_i[n] * a1_r
+
+    y_r[n+1] = y_r[n] * a1_r - (source[n-1] + y_r[n-1] * a1_i + y_i[n-1] * a1_r) * a1_i
+    y_i[n] * a1_i = y_r[n] * a1_r - y_r[n+1]
+
+    y_r[n+1] = y_r[n] * a1_r - (source[n-1] + y_r[n-1] * a1_i) * a1_i + (y_r[n-1] * a1_r - y_r[n]) * a1_r
+
+    y[n+2] = 2 * a1_r * y[n+1] + (a1_r ** 2 - a1_i ** 2) * y[n] - source[n+1] * a1_i
+"""
+
+#def f_factored(source, frequency=220, decay=2, srate=None):
+
+
+
+def g(source, frequency=220, Q=10, srate=None):
+    if srate is None:
+        srate = get_srate()
+    w0 = 2.0 * pi * frequency / srate
+    cosw0 = cos(w0)
+    alpha = sin(w0) / (2.0 * Q)
+    return twopole(source, 1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, sin(w0))
+
+def hp(source, frequency=220, Q=10, srate=None):
+    if srate is None:
+        srate = get_srate()
+    w0 = 2.0 * pi * frequency / srate
+    cosw0 = cos(w0)
+    alpha = sin(w0) / (2.0 * Q)
+    
+    return twozero(source, 1.0 + alpha, 0.5 * (1.0 + cosw0), -1.0 - cosw0, 0.5 * (1.0 + cosw0))
+
+
+h = lambda s: hpf(s, 220, 10)
+
+#s = list(h([1] + [0] * 10000))
+
+
+freq = [1 + t * 2205 for t in time(10)]
+s = map(sine, integrate(freq))
+#s = fast_uniform_t(10)
+#s = repeat(1)
+#s = cycle([1, -1])
+#s = [1] * 10000000
+#b0 = []
+#for f in freq:
+#    a1 = resonator_a1(f, 5)
+    #b0.append(1.0 / (-1j * a1 / (a1 - 1)).real)
+#s = list(twozero(dynamic_resonator(s, b0, freq, repeat(5)), 1, 1, 2, 1))
+#s = list(dynamic_lowpass(s, freq, repeat(5)))
+#s = list(dynamic_highpass(s, freq, repeat(1)))
+#s = list(dynamic_bpf0(s, freq, repeat(10)))
+s = list(dynamic_bandpass(s, freq, repeat(0.1)))
+#s = list(resonator(s, 1, 10000, 0.1))
+
+s = gain(s, 0.1)
+
+play(s)
+
+save(s, "temp.wav")
+
+def nyquister(source):
+    source = iter(source)
+    while True:
+        yield next(source)
+        yield -next(source)
+
+
+#print(1.0 / sum(nyquister(resonator([1] + [0] * 10000, 1, 220, 5))))

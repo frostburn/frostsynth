@@ -134,4 +134,7 @@ epsilon = 1e-10
 two_pi = 2.0 * math.pi
 
 
+two_pi_j = two_pi * 1j
+
+
 i_pi = 1.0 / math.pi
