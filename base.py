@@ -19,6 +19,20 @@ def get_srate(default=None):
         return default
 
 
+class Srate(object):
+    def __init__(self, srate):
+        self.srate = srate
+
+    def __enter__(self):
+        global _srate
+        self.old_srate = _srate
+        _srate = self.srate
+
+    def __exit__(self, *args, **kwargs):
+        global _srate
+        _srate = self.old_srate
+
+
 def zero(k):
     return [0.0] * k
 

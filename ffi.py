@@ -12,6 +12,9 @@ ffi.cdef(
     double lcg();
     void lcg_a(double *a, size_t l);
     void fft_r(double *a, size_t l);
+    void convolve(const double Signal[/* SignalLen */], size_t SignalLen,
+                  const double Kernel[/* KernelLen */], size_t KernelLen,
+                  double Result[/* SignalLen + KernelLen - 1 */]);
     """
 )
 
@@ -33,7 +36,7 @@ C = ffi.verify(
     void lcg_a(double *a, size_t l)
     {
         size_t i;
-        for(i = 0; i < l; i++){
+        for (i = 0; i < l; i++){
             x = 1664525 * x + 1013904223;
             a[i] = x / 2147483648.0 - 1.0;
         }
@@ -105,7 +108,7 @@ C = ffi.verify(
             }
             fft(even, l2);
             fft(odd, l2);
-            for(i = 0; i < l2; i++){
+            for (i = 0; i < l2; i++){
                 if (l == 8){
                     twiddle = twiddles[i << 3];
                 }
@@ -133,15 +136,38 @@ C = ffi.verify(
     void fft_r(double *a, size_t l){
         size_t i;
         double complex *b = malloc(l * sizeof(double complex));
-        for(i = 0; i < l; i++){
+        for (i = 0; i < l; i++){
             b[i] = a[2 * i] + a[2 * i + 1] * I;
         }
         fft(b, l);
-        for(i = 0; i < l; i++){
+        for (i = 0; i < l; i++){
             a[2 * i] = creal(b[i]);
             a[2 * i + 1] = cimag(b[i]);
         }
         free(b);
+    }
+
+    // Implementation by Alexey Frunze on Stackoverflow.
+    void convolve(const double Signal[/* SignalLen */], size_t SignalLen,
+                  const double Kernel[/* KernelLen */], size_t KernelLen,
+                  double Result[/* SignalLen + KernelLen - 1 */])
+    {
+      size_t n;
+
+      for (n = 0; n < SignalLen + KernelLen - 1; n++)
+      {
+        size_t kmin, kmax, k;
+
+        //Result[n] = 0;
+
+        kmin = (n >= KernelLen - 1) ? n - (KernelLen - 1) : 0;
+        kmax = (n < SignalLen - 1) ? n : SignalLen - 1;
+
+        for (k = kmin; k <= kmax; k++)
+        {
+          Result[n] += Signal[k] * Kernel[n - k];
+        }
+      }
     }
     """,
     libraries=["m"]
@@ -180,3 +206,11 @@ def fft(x):
     a = _split(x)
     C.fft_r(a, N)
     return _recombine(a, N)
+
+
+def convolve(signal, kernel):
+    s = ffi.new("double[]", signal)
+    k = ffi.new("double[]", kernel)
+    r = ffi.new("double[]", len(signal) + len(kernel) - 1)
+    C.convolve(s, len(signal), k, len(kernel), r)
+    return list(r)
