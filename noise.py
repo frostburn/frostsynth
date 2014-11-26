@@ -1,5 +1,5 @@
 from random import *
-from cmath import rect
+from cmath import rect as from_polar
 
 from base import *
 from interpolation import *
@@ -33,9 +33,9 @@ def uniform_t(duration, vmin=-1.0, vmax=1.0, srate=None):
 
 def cunit(k=None):
     if k is None:
-        return rect(1, two_pi * random())
+        return from_polar(1, two_pi * random())
     else:
-        return [rect(1, two_pi * random()) for _ in range(k)]
+        return [from_polar(1, two_pi * random()) for _ in range(k)]
 
 
 def cunit_t(duration, srate=None):

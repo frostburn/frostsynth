@@ -20,6 +20,7 @@ from polytable import *
 from aplayout import play
 import wavein
 from waveout import save
+from ffi import malloc_copy
 
 srate = get_srate()
 
@@ -131,7 +132,7 @@ def convolve(source, kernel, mode="tail"):
     for i in range(len(source)):
         buf[i + l] = sum(s * k for s, k in zip(source[i + 1:len], kernel))
 """
-
+"""
 with Srate(srate * 8):
     s = [0.5 * cub(t * 1000 + cub(t * 3000) * exp(-5 * t)) * exp(-3 * t) for t in time(1)]
 
@@ -143,6 +144,56 @@ kernel = [0.01 * n for i, n in enumerate(fast_uniform(2000))]
 
 s = list(comb(convolve_list(s, kernel), 2001, 0.7))
 #s = list(convolve(s, kernel))
+
+
+"""
+"""
+def r(s, frequency=0.025, Q=10):
+    def g(frequency):
+        i = 0
+        while True:
+            i += 1
+            if i == 200:
+                frequency /= 2
+            w0 = 2.0 * pi * frequency
+            cosw0 = cos(w0)
+            alpha = sin(w0) / (2.0 * Q)
+            yield (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, 1, 0, 0)
+
+    return dynamic_biquad(s, g(frequency))
+
+
+def res(s, frequency=0.025, decay=0.25):
+    y0 = 0j
+    for i, sample in enumerate(s):
+        if i == 200:
+            frequency /= 2
+        a1 = cexp(-(decay + two_pi_j) * frequency)
+        y0 = 1j * sample + a1 * y0
+        yield y0.real
+
+
+
+
+s = [1] + [0] * 400
+
+s = list(r(s))
+
+print(s)
+"""
+
+#s = fast_uniform_t(5)
+#s = fast_uniform(1000) * 300
+#f = [440 + rect(t * 3) * 4400 for t in time(5)]
+
+#s = gain(dynamic_lpf(s, f, repeat(3)), 0.1)
+#s = gain(dynamic_lowpass(s, f, repeat(0.8)), 0.1)
+
+s = malloc_copy(64, 3000)
+
+s = gain(s, 0.5)
+
+set_srate(8000)
 
 play(s)
 

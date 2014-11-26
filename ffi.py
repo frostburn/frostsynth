@@ -15,6 +15,7 @@ ffi.cdef(
     void convolve(const double Signal[/* SignalLen */], size_t SignalLen,
                   const double Kernel[/* KernelLen */], size_t KernelLen,
                   double Result[/* SignalLen + KernelLen - 1 */]);
+    void malloc_copy(double result[], size_t length, size_t count);
     """
 )
 
@@ -169,6 +170,22 @@ C = ffi.verify(
         }
       }
     }
+
+    void malloc_copy(double result[], size_t length, size_t count)
+    {
+        size_t i, j;
+        unsigned char **r = (unsigned char **) malloc(count * sizeof(unsigned char *));
+        for (j = 0; j < count; j++){
+            r[j] = (unsigned char*) malloc(length * sizeof(unsigned char));
+            for (i = 0; i < length; i++){
+                result[j * length + i] = r[j][i] / 255.0 * 2.0 - 1.0;
+            }
+        }
+        for (j = 0; j < count; j++){
+            free(r[j]);
+        }
+        free(r);
+    }
     """,
     libraries=["m"]
 )
@@ -214,3 +231,9 @@ def convolve(signal, kernel):
     r = ffi.new("double[]", len(signal) + len(kernel) - 1)
     C.convolve(s, len(signal), k, len(kernel), r)
     return list(r)
+
+
+def malloc_copy(length, count):
+    result = ffi.new("double[]", length * count)
+    C.malloc_copy(result, length, count)
+    return list(result)

@@ -1,5 +1,5 @@
 from math import *
-from cmath import rect, exp as cexp
+from cmath import rect as from_polar, exp as cexp
 
 from base import *
 from filters.base import *
@@ -223,12 +223,12 @@ if False:
 
 def resonator(source, b1, frequency, decay, srate=None):
     """
-    Delayed two pole filter.
+    Delayed resonant filter.
     Peak amplitude_normalized.
     """
     srate = get_srate(srate)
     dt = 1 / srate
-    z = rect(1, -two_pi * frequency * dt)
+    z = from_polar(1, -two_pi * frequency * dt)
     a1 = exp(-decay * frequency * dt) * z
     b1 *= 2j / abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z))
     y0 = 0.0j
@@ -239,14 +239,14 @@ def resonator(source, b1, frequency, decay, srate=None):
 
 def dynamic_resonator(source, b1, frequency, decay, srate=None):
     """
-    Delayed dynamic two pole filter that doesn't suffer from transients.
+    Delayed dynamic resonant filter that doesn't suffer from transients.
     Peak amplitude normalized.
     """
     srate = get_srate(srate)
     dt = 1 / srate
     y0 = 0.0j
     for sample, b, f, d in zip(source, b1, frequency, decay):
-        z = rect(1, -two_pi * f * dt)
+        z = from_polar(1, -two_pi * f * dt)
         a1 = exp(-d * f * dt) * z
         i_norm_j = 2j / abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z))
         y0 = i_norm_j * b * sample + y0 * a1
@@ -337,7 +337,7 @@ def dynamic_bandpass(source, frequency, decay, srate=None):
     dt = 1 / srate
     y0 = 0.0j
     for sample, f, d in zip(_dc_nyquist_twozero(source), frequency, decay):
-        z = rect(1, -two_pi * f * dt)
+        z = from_polar(1, -two_pi * f * dt)
         a1 = exp(-d * f * dt) * z
         i_norm_j = 2j / (abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z)) * abs(1 - z * z))
         y0 = i_norm_j * sample + y0 * a1
