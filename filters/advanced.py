@@ -37,13 +37,14 @@ def convolve(signal, kernel):
 
 def dynamic_convolve(signal, kernels, dt=0.05, srate=None):
     srate = get_srate(srate)
-    k = int(dt * srate)
     buf = []
     result = []
-    for i, kernel in enumerate(kernels):
-        result += buf[:k]
-        buf = buf[k:]
-        s = signal[i * k: (i + 1) * k]
+    t = 0.0
+    for kernel in kernels:
+        i = int(t * srate)
+        t += dt
+        l = int(t * srate) - i
+        s = signal[i: l + i]
         if not s:
             break
         c = convolve_list(s, kernel)
@@ -52,6 +53,8 @@ def dynamic_convolve(signal, kernels, dt=0.05, srate=None):
         else:
             c += [0.0] * (len(buf) - len(c))
         buf = [b + c for b, c, in zip(buf, c)]
+        result += buf[:l]
+        buf = buf[l:]
     result += buf
     return result
 

@@ -342,3 +342,42 @@ def dynamic_bandpass(source, frequency, decay, srate=None):
         i_norm_j = 2j / (abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z)) * abs(1 - z * z))
         y0 = i_norm_j * sample + y0 * a1
         yield y0.real
+
+
+def dynamic_allpass(source, frequency, decay, srate=None):
+    """
+    Dynamic all pass filter that doesn't suffer from transients.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    x1 = 0.0
+    x2 = 0.0
+    for sample, f, d in zip(source, frequency, decay):
+        a1 = cexp(-(d + two_pi_j) * f * dt)
+        b0 = a1.real ** 2 + a1.imag ** 2
+        b1 = -2 * a1.real
+        y0 = 1j * (b0 * sample + b1 * x1 + x2) + y0 * a1
+        x2 = x1
+        x1 = sample
+        yield -y0.real / a1.imag
+
+
+def dynamic_notch_filter(source, frequency, decay, srate=None):
+    """
+    Dynamic notch filter that doesn't suffer from transients.
+    """
+    srate = get_srate(srate)
+    dt = 1 / srate
+    y0 = 0.0j
+    x1 = 0.0
+    x2 = 0.0
+    for sample, f, d in zip(source, frequency, decay):
+        z = from_polar(1, -two_pi * f * dt)
+        a1 = exp(-d * f * dt) * z
+        b1 = -2 * z.real
+        i_norm_j = 2j / abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z))
+        y0 = i_norm_j * (sample + b1 * x1 + x2) + y0 * a1
+        x2 = x1
+        x1 = sample
+        yield y0.real

@@ -183,16 +183,20 @@ print(s)
 """
 
 #s = fast_uniform_t(5)
-#s = fast_uniform(1000) * 300
-#f = [440 + rect(t * 3) * 4400 for t in time(5)]
+#s0 = s
+#f = [1 + t * 4410 for t in time(5)]
 
-#s = gain(dynamic_lpf(s, f, repeat(3)), 0.1)
-#s = gain(dynamic_lowpass(s, f, repeat(0.8)), 0.1)
+#s = gain(dynamic_bpf0(s, f, repeat(0.6)), 0.1)
+#s = gain(dynamic_bandpass(s, f, repeat(10)), 0.1)
+
+#s = mix([s, s0])
+
+#s = gain(s, 0.1)
 
 #s = malloc_copy(8, 5000)
 #set_srate(22050)
 
-
+"""
 phase = integrate_gen(map(mtof, eased_step_gen(cycle([(C4, 0.2, 0.05), E4, G4]))))
 amplitude = eased_step_gen(cycle([(1, 0.15, 0.01), (0, 0.05, 0.02)]))
 
@@ -209,6 +213,10 @@ s = dynamic_convolve(s, ks, dt=0.01)
 #s = reverb(s)
 
 s = gain(s, 0.5)
+"""
+
+s = list(bpf0([1] + [0] * 10000, 11025, 1))
+#s /= max(s)
 
 play(s)
 

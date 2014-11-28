@@ -84,6 +84,20 @@ def time_dt_gen(dt, t0=0.0):
     return (t0 + i * dt for i in count())
 
 
+def differentiate_gen(source, srate=None):
+    if srate is None:
+        srate = _srate
+    source0, source1 = tee(source)
+    next(source1)
+    return ((s1 - s0) * srate for s0, s1 in zip(source0, source1))
+
+
+def differentiate(source, srate=None):
+    if srate is None:
+        srate = _srate
+    return [(s1 - s0) * srate for s0, s1 in zip(source, source[1:])]
+
+
 def integrate_gen(source, srate=None):
     """
     Integrates 'source' with respect to time.
