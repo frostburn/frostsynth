@@ -189,11 +189,26 @@ print(s)
 #s = gain(dynamic_lpf(s, f, repeat(3)), 0.1)
 #s = gain(dynamic_lowpass(s, f, repeat(0.8)), 0.1)
 
-s = malloc_copy(64, 3000)
+#s = malloc_copy(8, 5000)
+#set_srate(22050)
+
+
+phase = integrate_gen(map(mtof, eased_step_gen(cycle([(C4, 0.2, 0.05), E4, G4]))))
+amplitude = eased_step_gen(cycle([(1, 0.15, 0.01), (0, 0.05, 0.02)]))
+
+s = [(saw(p) + saw(p + 2 * t)) * 0.5 * a for t, p, a in zip(time(3), phase, amplitude)]
+
+#n = gain(uniform(200), 0.05)
+
+ks = ([0.01 * sin((2000 + T * 200) * t + 7 * sin((5000 - T * 1000) * t)) for t in time(0.05)] for T in time_dt_gen(0.01))
+
+s = dynamic_convolve(s, ks, dt=0.01)
+
+#s = comb(s, 500, 0.9)
+
+#s = reverb(s)
 
 s = gain(s, 0.5)
-
-set_srate(8000)
 
 play(s)
 

@@ -80,6 +80,10 @@ def time_gen(t0=0.0, srate=None):
     return (t0 + i * dt for i in count())
 
 
+def time_dt_gen(dt, t0=0.0):
+    return (t0 + i * dt for i in count())
+
+
 def integrate_gen(source, srate=None):
     """
     Integrates 'source' with respect to time.
