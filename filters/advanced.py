@@ -5,6 +5,7 @@ from filters.base import *
 from filters.basic import *
 from filters.delay import *
 from ffi import convolve as convolve_list
+from track import A2, A4, mtof
 
 
 def convolve_gen(iterable, kernel, tail=True):
@@ -59,13 +60,23 @@ def dynamic_convolve(signal, kernels, dt=0.05, srate=None):
     return result
 
 
+def lbcf(source, duration, factor, gain, srate=None):
+    dur = 1.0 / 44100.0
+    lpf_ = lambda s: decay(s, factor, gain, duration=dur, srate=srate)
+
+    return filtered_comb_t(source, duration, lpf_)
+
+
 def reverb(source):
     g = 0.45
     d = 0.6
-    lpf_ = lambda s: onepole(s, 1, -d, g * (1 - d))
-
-    def lbcf(source, duration):
-        return filtered_comb_t(source, duration, lpf_)
-
     s0, s1, s2 = tee(source, 3)
-    return gain_gen(schroeder_t(schroeder_t(mix_gen([lbcf(s0, 0.035), lbcf(s1, 0.051), lbcf(s2, 0.067)]), 0.0077, 0.5), 0.0091, 0.5), 0.3)
+    return gain_gen(schroeder_t(schroeder_t(mix_gen([lbcf(s0, 0.035, d, g), lbcf(s1, 0.051, d, g), lbcf(s2, 0.067, d, g)]), 0.0077, 0.5), 0.0091, 0.5), 0.3)
+
+
+def grand_reverb(source, factor=0.3, gain=0.975, first_pitch=A2, last_pitch=A4, srate=None):
+    sources = tee(source, last_pitch - first_pitch + 1)
+    ls = []
+    for i, s in enumerate(sources):
+        ls.append(lbcf(s, 1 / mtof(first_pitch + i), factor, gain, srate=srate))
+    return mix_gen(ls)

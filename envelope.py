@@ -23,7 +23,7 @@ def decay_env_gen(source, amplitude, decay, srate=None):
 
 def hold_release_env(source, hold, release, srate=None):
     srate = get_srate(srate)
-    buf = list(timeslice(source, hold + release, srate=srate))
+    buf = timeslice(source, hold + release, srate=srate)
     k = int(srate * hold)
     if release == 0.0:
         return buf

@@ -5,11 +5,14 @@ from base import *
 from filters.base import *
 
 
-def decay(source, factor=0.01, duration=1.0, srate=None):
+def decay(source, factor=0.01, gain=1.0, duration=1.0, normalized=True, srate=None):
     """Exponential decay by 'factor' in time 'duration' when fed with a simple impulse."""
-    if srate is None:
-        srate = get_srate()
-    return onepole(source, 1.0, -factor ** (srate / duration), 1.0)
+    srate = get_srate(srate)
+    a1 = -factor ** (srate / duration)
+    b0 = gain
+    if normalized:
+        b0 *= (1 + a1)
+    return onepole(source, 1.0, a1, b0)
 
 
 def attenuate(source, factor=0.01, duration=1.0, srate=None):
@@ -64,13 +67,13 @@ i_sqrt_two = 1.0 / sqrt(2.0)
 
 
 def _lpf_coefs(frequency, Q, srate=None):
-    if srate is None:
-        srate = get_srate()
-    w0 = 2.0 * pi * frequency / srate
+    srate = get_srate(srate)
+    w0 = two_pi * frequency / srate
     cosw0 = cos(w0)
     alpha = sin(w0) / (2.0 * Q)
+    cosw0_h = 0.5 * (1.0 - cosw0)
 
-    return (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, 0.5 * (1.0 - cosw0), 1.0 - cosw0, 0.5 * (1.0 - cosw0))
+    return (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, cosw0_h, cosw0_h + cosw0_h, cosw0_h)
 
 
 def lpf(source, frequency, Q=i_sqrt_two, srate=None):
@@ -82,13 +85,13 @@ def dynamic_lpf(source, frequency, Q, srate=None):
 
 
 def _hpf_coefs(frequency, Q, srate=None):
-    if srate is None:
-        srate = get_srate()
-    w0 = 2.0 * pi * frequency / srate
+    srate = get_srate(srate)
+    w0 = two_pi * frequency / srate
     cosw0 = cos(w0)
     alpha = sin(w0) / (2.0 * Q)
-    
-    return (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, 0.5 * (1.0 + cosw0), -1.0 - cosw0, 0.5 * (1.0 + cosw0))
+    cosw0_h = 0.5 * (1.0 + cosw0)
+
+    return (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, cosw0_h, -cosw0_h - cosw0_h, cosw0_h)
 
 
 def hpf(source, frequency, Q=i_sqrt_two, srate=None):
@@ -132,7 +135,7 @@ for name, formula in zip(_filter_names, _filter_formulas):
     exec("def _" + name + """_coefs(frequency, Q, srate=None):
     if srate is None:
         srate = get_srate()
-    w0 = 2.0*pi*frequency / srate
+    w0 = two_pi * frequency / srate
     cosw0 = cos(w0)
     alpha = sin(w0) / (2.0 * Q)""" + formula + """
     return (a0, a1, a2, b0, b1, b2)
@@ -174,9 +177,9 @@ if False:
         if srate is None:
             srate = get_srate()
         sqrtA = sqrt(A)
-        w0 = 2.0*pi*frequency/srate
+        w0 = two_pi * frequency / srate
         cosw0 = cos(w0)
-        alpha = sin(w0)/(2.0*Q)"""+formula+"""  
+        alpha = sin(w0) / (2.0 * Q)"""+formula+"""  
         return (a0, a1, a2, b0, b1, b2)
 
     def """+name+"""(source, frequency, Q, A, srate=None):
@@ -328,10 +331,11 @@ def _dc_nyquist_twozero(source):
         yield x1 - x0
 
 
+# TODO: Fix
 def dynamic_bandpass(source, frequency, decay, srate=None):
     """
     Dynamic band pass filter that doesn't suffer from transients.
-    Peak amplitude normalized.
+    Approximately peak amplitude normalized. Broken for high decay values.
     """
     srate = get_srate(srate)
     dt = 1 / srate
@@ -363,7 +367,7 @@ def dynamic_allpass(source, frequency, decay, srate=None):
         yield -y0.real / a1.imag
 
 
-def dynamic_notch_filter(source, frequency, decay, srate=None):
+def dynamic_bandreject(source, frequency, decay, srate=None):
     """
     Dynamic notch filter that doesn't suffer from transients.
     """

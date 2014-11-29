@@ -1,5 +1,6 @@
 import math
 from itertools import *
+from collections import Iterable, Sequence
 
 
 _srate = 44100.0
@@ -41,6 +42,27 @@ def zero_t(duration, srate=None):
     if srate is None:
         srate = _srate
     return zero(int(duration * srate))
+
+
+def constant(k, value=1.0):
+    return [value] * k
+
+
+def constant_t(duration, value, srate=None):
+    if srate is None:
+        srate = _srate
+    return constant(int(duration * srate), value=value)
+
+
+def impulse(k, value=1.0):
+    return [value] + [0.0] * (k - 1)
+
+
+def impulse_t(duration, value=1.0, srate=None):
+    if srate is None:
+        srate = _srate
+    return impulse(int(duration * srate), value=value)
+
 
 def range_t(*args, step=None, srate=None):
     if srate is None:
@@ -113,8 +135,8 @@ def integrate(source, srate=None):
     return list(integrate_gen(source, srate))
 
 
-def timeslice(source, *args, **kwargs):
-    """timeslice(iterable[,start], stop, srate=None) --> elements of iterable between times start and stop."""
+def timeslice_gen(source, *args, **kwargs):
+    """timeslice_gen(iterable[,start], stop, srate=None) --> elements of iterable between times start and stop."""
     if "srate" in kwargs:
         srate = get_srate(kwargs["srate"])
     else:
@@ -128,6 +150,25 @@ def timeslice(source, *args, **kwargs):
         stop = args[1]
 
     return islice(source, int(srate * start), int(srate * stop))
+
+
+def timeslice(source, *args, **kwargs):
+    if isinstance(source, Sequence):
+        if "srate" in kwargs:
+            srate = get_srate(kwargs["srate"])
+        else:
+            srate = _srate
+        
+        if len(args)==1:
+            start = 0.0
+            stop = args[0]
+        else:
+            start = args[0]
+            stop = args[1]
+
+        return source[int(srate * start):int(srate * stop)]
+    else:
+        return list(timeslice_gen(source, *args, **kwargs))
 
 
 def gain(source, g):
@@ -146,6 +187,14 @@ def ringm_gen(source0, source1):
     return (s0 * s1 for s0, s1 in zip(source0, source1))
 
 
+def add(*args):
+    return [sum(samples) for samples in zip(*args)]
+
+
+def add_gen(*args):
+    return map(sum, zip(*args))
+
+
 def mix(sources, amplitudes=None):
     if amplitudes is None:
         return [sum(samples) for samples in zip(*sources)]
@@ -153,8 +202,16 @@ def mix(sources, amplitudes=None):
         return [sum(sample * amplitude for sample, amplitude in zip(samples, amplitudes)) for samples in zip(*sources)]
 
 
+# TODO: Amplitudes
 def mix_gen(sources):
     return map(sum, zip(*sources))
+
+
+def to_iterable(source):
+    if isinstance(source, Iterable):
+        return iter(source)
+    else:
+        return repeat(source)
 
 
 clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)

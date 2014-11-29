@@ -215,8 +215,114 @@ s = dynamic_convolve(s, ks, dt=0.01)
 s = gain(s, 0.5)
 """
 
-s = list(bpf0([1] + [0] * 10000, 11025, 1))
+#s = list(bpf0([1] + [0] * 10000, 11025, 1))
 #s /= max(s)
+"""
+from cmath import sqrt as csqrt
+
+def dynamic_resonator(source, frequency, Q, srate=None):
+    srate = get_srate(srate)
+    dt = 1.0 / srate
+    y0 = 0.0j
+    for sample, f, q in zip(source, frequency, Q):
+        w0 = two_pi * f * dt
+        cosw0 = cos(w0)
+        alpha = sin(w0) / (2.0 * q)
+        a1 = (cosw0 + csqrt(alpha ** 2 + cosw0 ** 2 - 1.0)) / (1 + alpha)
+        y0 = 1j * sample + a1 * y0
+        yield y0.real
+"""
+
+def quadratic_onepole(source, a, b, aa, ab, bb):
+    y = 0
+    for sample in source:
+        y = b * sample + a * y + bb * sample ** 2 + ab * sample * y + aa * y ** 2
+        yield y
+
+
+#s = [cub(t * 220 + t * t * 10) + par(t * 330 + t * t * 10) for t in time(2)]
+#s0 = s
+#f = [1 + t * 4400 for t in time(5)]
+
+#s = gain(quadratic_onepole(s, -0.3, 0.9, 0, -0.5, 0), 0.05)
+
+"""
+s = zero_t(2)
+for i in range(0, 12 * 2):
+    f = 110 * 2 ** (i / 12)
+    p = [cub(t * f + 0.4 * cub(t * f * 3) * exp(-6 * t)) * exp(-3 * t) for t in time(2)]
+    s = add(s, p)
+
+k = gain(s, 0.0002)
+
+f = 220
+s = [cub(t * f + 0.4 * cub(t * f * 3) * exp(-6 * t)) * exp(-3 * t) for t in time(2)]
+
+s = add(convolve(s, k), s)
+
+s = gain(s, 0.1)
+"""
+
+#s = []
+#for f in [220, 220 * 1.5, 440]:
+#    s += [cub(t * f + 0.4 * cub(t * f * 6 + n) * exp(-6 * t) + 2 * t * cub(t * f - n) * exp(-5 * t)) * exp(-3 * t) for t, n in zip(time(2), snow3_gen(f * 0.01))]
+
+#s = gain(mix([s, grand(s)], [5, 1]), 0.005)
+
+#s = gain(list(reverb(s)), 0.4)
+
+#s = impulse(1000)
+
+#d = 0.6
+#g = 1.0
+
+#s = list(onepole(s, 1, -d, g * (1 - d)))
+
+#print(mtof(A2))
+
+
+
+
+
+#s = [sine(220 * t) * n0 + cosine(220 * t) * n1 for t, n0, n1 in zip(time(10), lpnoise_gen(15, 3), lpnoise_gen(15, 3))]
+
+s = [sine(t * t * 2205) for t in time(5)]
+
+from cmath import sqrt as csqrt
+
+def _dc_nyquist_twozero(source):
+    source = iter(source)
+    x2 = next(source)
+    yield x2
+    x1 = next(source)
+    yield x1
+    while True:
+        x0 = next(source)
+        yield x0 - x2
+        x2 = next(source)
+        yield x2 - x1
+        x1 = next(source)
+        yield x1 - x0
+
+def resonator(source, frequency, Q, srate=None):
+    srate = get_srate(srate)
+    w0 = two_pi * frequency / srate
+    cosw0 = cos(w0)
+    alpha = sin(w0) / (2.0 * Q)
+    cosw0_h = 0.5 * (1.0 - cosw0)
+
+    sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
+    a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
+    i_norm = alpha / sqrt_discriminant
+    y0 = 0.0j
+    for sample in _dc_nyquist_twozero(source):
+        y0 = 1j * sample * i_norm + a1 * y0
+        yield y0.real
+
+#s = gain(dynamic_bpf0(s, repeat(20000), repeat(10)), 0.5)
+#s = gain(dynamic_resonator(s, repeat(1), repeat(20000), repeat(10)), 0.5)
+
+s = gain(resonator(s, 20000, 10.6), 0.5)
 
 play(s)
 

@@ -164,3 +164,43 @@ def wf(p):
         return 1 - 8 * p * p
     else:
         return -sin(p * 439)
+
+# Cellular automata
+def ca(bits, rule):
+    while True:
+        yield bits
+        bits = [rule(bits[i - 1], bits[i], bits[(i + 1) % len(bits)]) for i in range(len(bits))]
+
+
+def rule110(left, center, right):
+    if left:
+        if center:
+            return not right
+        else:
+            return right
+    else:
+        if center:
+            return True
+        else:
+            return right
+
+
+def rule30(left, center, right):
+    if left:
+        return not center and not right
+    else:
+        return center or right
+
+
+bits = [True] + [False] * 103 + [True] + [False] * 501
+
+s = [0.02 * sum(bits) - 0.01 for bits in timeslice(ca(bits, rule30), 1)]
+
+
+#Oh god no
+s = zero_t(10)
+
+for i in range(24):
+    s = add(s, [cub(t * (440 + 55 * i) + n0 * 150.5) * (0.5 + 0.2 * n1) for t, n0, n1 in zip(time(10), lpnoise_gen(0.3, 4), lpnoise_gen(4, 3))])
+
+s = gain(s, 0.05)
