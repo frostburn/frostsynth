@@ -15,7 +15,7 @@ def constant_series_n(z, n):
     returns 1 + z + z ** 2 + ... + z ** n
     """
     z1 = 1 - z
-    if (abs(z1) < epsilon):
+    if abs(z1) < epsilon:
         return n + 1
     return (1 - z ** (n + 1)) / z1
 
@@ -38,7 +38,7 @@ def linear_series_n(z, a, b, n):
     z1 = 1 - z
     nz1 = n * z1
     zzn1 = z * zn1
-    if (abs(z1) < epsilon):
+    if abs(z1) < epsilon:
         return 0.5 * (a + b) * (1 + n)
     return ((b - a) * zzn1 + nz1 * (a - z * bzn)) / (nz1 * z1)
 

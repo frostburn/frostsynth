@@ -1,12 +1,12 @@
 from math import *
 from cmath import exp as cexp
 
-from base import epsilon, clip, two_pi, i_pi
+from base import epsilon, clip, two_pi, two_pi_j, i_pi
 
 __all__ = [
     "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
     "rect", "square", "triangle", "tense",
-    "softsaw", "softrect", "softrect2", "softsquare", "softsquare2", "softtriangle",
+    "softsaw", "softsaw_complement", "softrect", "softrect2", "softsquare", "softsquare2", "softsquare3", "softtriangle",
     "sine", "cosine", "cis",
     "duplex", "bias"
 ]
@@ -149,11 +149,17 @@ def softsaw(phase, sharpness):
     return atan(s * sin(x) / (1.0 + s * cos(x))) / asin(s)
 
 
+def softsaw_complement(phase, sharpness):
+    x = two_pi * phase
+    s = clip(sharpness, epsilon, 1 - 100 * epsilon)
+    return 0.5 * log(1 + (s - 2 * cos(x)) * s) / asin(s)
+
+
 def _softsquare(phase, sharpness, bias=0.5):
     return softsaw(phase + 0.5 - bias, sharpness) - softsaw(phase + 0.5, sharpness)
 
 
-def softrect(phase, sharpness, bias=0.2):
+def softrect(phase, sharpness, bias=0.5):
     bottom = _softsquare(0.5 + bias * 0.5, sharpness, bias)
     top = softsquare2(0.5 * bias, sharpness, bias)
     return (softsquare2(phase, sharpness, bias) - bottom) / (top - bottom)
@@ -181,6 +187,13 @@ def softsquare2(phase, tension, bias=0.5):
     top = tanh(tension * (1 + c))
     bottom = tanh(tension * (c - 1))
     return 2 * (tanh(tension * (cosine(phase) + c)) - bottom) / (top - bottom) - 1
+
+
+def softsquare3(phase, sharpness):
+    x = two_pi * phase
+    s = clip(sharpness, epsilon, 1 - epsilon)
+    a = 2 * s / (1 - s * s)
+    return atan(a * sin(x)) / atan(a)
 
 
 def softtriangle(phase, sharpness):

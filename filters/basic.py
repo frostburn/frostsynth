@@ -66,9 +66,8 @@ def onepole_lpf(source, d):
 i_sqrt_two = 1.0 / sqrt(2.0)
 
 
-def _lpf_coefs(frequency, Q, srate=None):
-    srate = get_srate(srate)
-    w0 = two_pi * frequency / srate
+def _lpf_coefs(frequency, Q, dw):
+    w0 = dw * frequency
     cosw0 = cos(w0)
     alpha = sin(w0) / (2.0 * Q)
     cosw0_h = 0.5 * (1.0 - cosw0)
@@ -77,16 +76,17 @@ def _lpf_coefs(frequency, Q, srate=None):
 
 
 def lpf(source, frequency, Q=i_sqrt_two, srate=None):
-    return biquad(source, *_lpf_coefs(frequency, Q, srate))
+    dw = two_pi / get_srate(srate)
+    return biquad(source, *_lpf_coefs(frequency, Q, dw))
 
 
 def dynamic_lpf(source, frequency, Q, srate=None):
-    return dynamic_biquad(source, map(_lpf_coefs, frequency, Q, repeat(srate)))
+    dw = two_pi / get_srate(srate)
+    return dynamic_biquad(source, map(_lpf_coefs, frequency, Q, repeat(dw)))
 
 
-def _hpf_coefs(frequency, Q, srate=None):
-    srate = get_srate(srate)
-    w0 = two_pi * frequency / srate
+def _hpf_coefs(frequency, Q, dw):
+    w0 = dw * frequency
     cosw0 = cos(w0)
     alpha = sin(w0) / (2.0 * Q)
     cosw0_h = 0.5 * (1.0 + cosw0)
@@ -95,11 +95,13 @@ def _hpf_coefs(frequency, Q, srate=None):
 
 
 def hpf(source, frequency, Q=i_sqrt_two, srate=None):
-    return biquad(source, *_hpf_coefs(frequency, Q, srate))
+    dw = two_pi / get_srate(srate)
+    return biquad(source, *_hpf_coefs(frequency, Q, dw))
 
 
 def dynamic_hpf(source, frequency, Q, srate=None):
-    return dynamic_biquad(source, map(_hpf_coefs, frequency, Q, repeat(srate)))
+    dw = two_pi / get_srate(srate)
+    return dynamic_biquad(source, map(_hpf_coefs, frequency, Q, repeat(dw)))
 
 
 #Spam the rest using an exec macro:
@@ -271,18 +273,22 @@ def _nyquist_twozero(source):
         yield x1 + x2 + x2 + x0
 
 
-def dynamic_lowpass(source, frequency, decay, srate=None):
+def dynamic_lowpass(source, frequency, Q, srate=None):
     """
     Dynamic low pass filter that doesn't suffer from transients.
     Normalized at DC.
     """
     srate = get_srate(srate)
-    dt = 1 / srate
-    y0 = 0.0j
-    for sample, f, d in zip(_nyquist_twozero(source), frequency, decay):
-        a1 = cexp(-(d + two_pi_j) * f * dt)
-        i_norm_j = -0.25j * ((a1.real - 1) ** 2 + a1.imag ** 2) / a1.imag
-        y0 = i_norm_j * sample + y0 * a1
+    dw = two_pi / srate
+    y0 = 0j
+    for sample, f, q in zip(_nyquist_twozero(source), frequency, Q):
+        w0 = dw * f
+        cosw0 = cos(w0)
+        alpha = sin(w0) / (2 * q)
+        sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
+        a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
+        b1 = 0.5 * (1.0 - cosw0) / sqrt_discriminant
+        y0 = 1j * b1 * sample + a1 * y0
         yield y0.real
 
 
@@ -301,18 +307,22 @@ def _dc_twozero(source):
         yield x1 - x2 - x2 + x0
 
 
-def dynamic_highpass(source, frequency, decay, srate=None):
+def dynamic_highpass(source, frequency, Q, srate=None):
     """
     Dynamic high pass filter that doesn't suffer from transients.
     Normalized at nyquist.
     """
     srate = get_srate(srate)
-    dt = 1 / srate
-    y0 = 0.0j
-    for sample, f, d in zip(_dc_twozero(source), frequency, decay):
-        a1 = cexp(-(d + two_pi_j) * f * dt)
-        i_norm_j = -0.25j * ((a1.real + 1) ** 2 + a1.imag ** 2) / a1.imag
-        y0 = i_norm_j * sample + y0 * a1
+    dw = two_pi / srate
+    y0 = 0j
+    for sample, f, q in zip(_dc_twozero(source), frequency, Q):
+        w0 = dw * f
+        cosw0 = cos(w0)
+        alpha = sin(w0) / (2 * q)
+        sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
+        a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
+        b1 = 0.5 * (1.0 + cosw0) / sqrt_discriminant
+        y0 = 1j * b1 * sample + a1 * y0
         yield y0.real
 
 
@@ -331,57 +341,69 @@ def _dc_nyquist_twozero(source):
         yield x1 - x0
 
 
-# TODO: Fix
-def dynamic_bandpass(source, frequency, decay, srate=None):
+def dynamic_bandpass(source, frequency, Q, srate=None):
     """
     Dynamic band pass filter that doesn't suffer from transients.
-    Approximately peak amplitude normalized. Broken for high decay values.
+    Peak amplitude normalized.
     """
     srate = get_srate(srate)
-    dt = 1 / srate
-    y0 = 0.0j
-    for sample, f, d in zip(_dc_nyquist_twozero(source), frequency, decay):
-        z = from_polar(1, -two_pi * f * dt)
-        a1 = exp(-d * f * dt) * z
-        i_norm_j = 2j / (abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z)) * abs(1 - z * z))
-        y0 = i_norm_j * sample + y0 * a1
+    dw = two_pi / srate
+    y0 = 0j
+    for sample, f, q in zip(_dc_nyquist_twozero(source), frequency, Q):
+        w0 = dw * f
+        cosw0 = cos(w0)
+        alpha = sin(w0) / (2 * q)
+        sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
+        a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
+        b1 = alpha / sqrt_discriminant
+        y0 = 1j * b1 * sample + a1 * y0
         yield y0.real
 
 
-def dynamic_allpass(source, frequency, decay, srate=None):
+def dynamic_allpass(source, frequency, Q, srate=None):
     """
     Dynamic all pass filter that doesn't suffer from transients.
     """
     srate = get_srate(srate)
-    dt = 1 / srate
-    y0 = 0.0j
+    dw = two_pi / srate
+    y0 = 0j
     x1 = 0.0
     x2 = 0.0
-    for sample, f, d in zip(source, frequency, decay):
-        a1 = cexp(-(d + two_pi_j) * f * dt)
-        b0 = a1.real ** 2 + a1.imag ** 2
-        b1 = -2 * a1.real
-        y0 = 1j * (b0 * sample + b1 * x1 + x2) + y0 * a1
+    for sample, f, q in zip(source, frequency, Q):
+        w0 = dw * f
+        cosw0 = cos(w0)
+        alpha = sin(w0) / (2 * q)
+        sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
+        a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
+        i_norm_j = 1j / sqrt_discriminant
+        b1 = 1 - alpha
+        b2 = -2 * cosw0
+        b3 = 1 + alpha
+        y0 = i_norm_j * (b1 * sample + b2 * x1 + b3 * x2) + a1 * y0
+        yield y0.real
         x2 = x1
         x1 = sample
-        yield -y0.real / a1.imag
 
 
-def dynamic_bandreject(source, frequency, decay, srate=None):
+def dynamic_bandreject(source, frequency, Q, srate=None):
     """
-    Dynamic notch filter that doesn't suffer from transients.
+    Dynamic band reject filter that doesn't suffer from transients.
+    Normalized at DC and nyquist.
     """
     srate = get_srate(srate)
-    dt = 1 / srate
-    y0 = 0.0j
+    dw = two_pi / srate
+    y0 = 0j
     x1 = 0.0
     x2 = 0.0
-    for sample, f, d in zip(source, frequency, decay):
-        z = from_polar(1, -two_pi * f * dt)
-        a1 = exp(-d * f * dt) * z
-        b1 = -2 * z.real
-        i_norm_j = 2j / abs(1j / (1 - a1 * z) - 1j / (1 - a1.conjugate() * z))
-        y0 = i_norm_j * (sample + b1 * x1 + x2) + y0 * a1
+    for sample, f, q in zip(source, frequency, Q):
+        w0 = dw * f
+        cosw0 = cos(w0)
+        alpha = sin(w0) / (2 * q)
+        sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
+        a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
+        i_norm_j = 1j / sqrt_discriminant
+        b2 = -2 * cosw0
+        y0 = i_norm_j * (sample + b2 * x1 + x2) + a1 * y0
+        yield y0.real
         x2 = x1
         x1 = sample
-        yield y0.real

@@ -17,6 +17,7 @@ from envelope import *
 from track import *
 from resample import *
 from polytable import *
+from blit import *
 from aplayout import play
 import wavein
 from waveout import save
@@ -286,44 +287,23 @@ s = gain(s, 0.1)
 
 #s = [sine(220 * t) * n0 + cosine(220 * t) * n1 for t, n0, n1 in zip(time(10), lpnoise_gen(15, 3), lpnoise_gen(15, 3))]
 
-s = [sine(t * t * 2205) for t in time(5)]
+f = [1.0 + t * 2250 / 5.0  for t in time(5)]
 
-from cmath import sqrt as csqrt
+s = [0.1 + t / 5.0 for t in time(5)]
 
-def _dc_nyquist_twozero(source):
-    source = iter(source)
-    x2 = next(source)
-    yield x2
-    x1 = next(source)
-    yield x1
-    while True:
-        x0 = next(source)
-        yield x0 - x2
-        x2 = next(source)
-        yield x2 - x1
-        x1 = next(source)
-        yield x1 - x0
 
-def resonator(source, frequency, Q, srate=None):
-    srate = get_srate(srate)
-    w0 = two_pi * frequency / srate
-    cosw0 = cos(w0)
-    alpha = sin(w0) / (2.0 * Q)
-    cosw0_h = 0.5 * (1.0 - cosw0)
-
-    sqrt_discriminant = sqrt(1 - alpha * alpha - cosw0 * cosw0)
-    a1 = (cosw0 + 1j * sqrt_discriminant) / (1 + alpha)
-    i_norm = alpha / sqrt_discriminant
-    y0 = 0.0j
-    for sample in _dc_nyquist_twozero(source):
-        y0 = 1j * sample * i_norm + a1 * y0
-        yield y0.real
 
 #s = gain(dynamic_bpf0(s, repeat(20000), repeat(10)), 0.5)
 #s = gain(dynamic_resonator(s, repeat(1), repeat(20000), repeat(10)), 0.5)
 
-s = gain(resonator(s, 20000, 10.6), 0.5)
+#s = gain(dynamic_lpf(s, repeat(20000), repeat(10.51)), 0.5)
 
-play(s)
+s = gain(sawblit(f, s, 0.5, 0.0), 0.1)
+
+#s = [0.1 * sine_odd_series(t, 10) for t in time(1)]
+
+#s = [0.1 * constant_series_n_mu(cis(t), 1.5).real for t in time(1)]
+
+#play(s)
 
 save(s, "temp.wav")

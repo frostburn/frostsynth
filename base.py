@@ -14,6 +14,7 @@ def set_srate(srate=44100.0):
 
 
 def get_srate(default=None):
+    """Gets the default sampling rate."""
     if default is None:
         return _srate
     else:
@@ -212,6 +213,13 @@ def to_iterable(source):
         return iter(source)
     else:
         return repeat(source)
+
+
+def to_sequence(source, n):
+    if isinstance(source, Sequence):
+        return source
+    else:
+        return [source] * n
 
 
 clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)
