@@ -23,8 +23,8 @@ except:
 
 
 def ifft(x):
-    N = len(x)
-    return [z.conjugate() / N for z in fft([z.conjugate() for z in x])]
+    i_N = 1.0 / len(x)
+    return [z.conjugate() * i_N for z in fft([z.conjugate() for z in x])]
 
 
 def rfft(x):
@@ -43,8 +43,12 @@ def rfft(x):
     return [even[k] + twiddle[k] * odd[k] for k in range(N // 2)] + [even[0] - odd[0]]
 
 
+def _irfft_process(x):
+    return [x[0]] + [2 * b for b in x[1:-1]] + [x[-1]] + [0.0j] * (len(x) - 2)
+
+
 def irfft(x):
-    return [z.real for z in ifft(x + [0.0] * (len(x) - 2))]
+    return [z.real for z in ifft(_irfft_process(x))]
 
 
 def unnormalized_ifft(x):
@@ -52,20 +56,20 @@ def unnormalized_ifft(x):
 
 
 def unnormalized_irfft(x):
-    return [z.real for z in unnormalized_ifft(x + [0.0] * (len(x) - 2))]
+    return [z.real for z in unnormalized_ifft(_irfft_process(x))]
 
 
 def pseudo_irfft(x):
-    return [z.real for z in fft(x + [0.0] * (len(x) - 2))]
+    return [z.real for z in fft(_irfft_process(x))]
 
 
 def pseudo_norm_irfft(x):
     m = ((len(x) - 1) * 2) ** -0.5
-    return [m * z.real for z in fft(x + [0.0] * (len(x) - 2))]
+    return [m * z.real for z in fft(_irfft_process(x))]
 
 
 def analytic_pfft(x):
-    return [z for z in fft(x + [0.0] * (len(x) - 2))]
+    return [z for z in fft(_irfft_process(x))]
 
 
 def pad(x):

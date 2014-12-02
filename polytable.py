@@ -113,3 +113,22 @@ class SplineTable(CubicTable):
         super().__init__(segment_data, periodic=periodic)
         if not periodic:
             self.shift = 2
+
+
+class WaveForm(SplineTable):
+    def __init__(self, data, tension=0.5):
+        super().__init__(data=data, periodic=True, tension=tension)
+
+    def __call__(self, phase):
+        return super().__call__(phase * len(self))
+
+    def differentiate(self):
+        for index, coefficients in enumerate(self[:]):
+            self[index] = tuple(coefficient * len(self) for coefficient in coefficients)
+
+    def integrate(self):
+        self.dc_block()
+        super().integrate()
+        i_len = 1.0 / len(self)
+        for index, coefficients in enumerate(self[:]):
+            self[index] = tuple(coefficient * i_len for coefficient in coefficients)

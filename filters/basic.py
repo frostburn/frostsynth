@@ -247,6 +247,8 @@ def dynamic_resonator(source, b1, frequency, decay, srate=None):
     Delayed dynamic resonant filter that doesn't suffer from transients.
     Peak amplitude normalized.
     """
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     srate = get_srate(srate)
     dt = 1 / srate
     y0 = 0.0j
@@ -273,11 +275,13 @@ def _nyquist_twozero(source):
         yield x1 + x2 + x2 + x0
 
 
-def dynamic_lowpass(source, frequency, Q, srate=None):
+def dynamic_lowpass(source, frequency, Q=i_sqrt_two, srate=None):
     """
     Dynamic low pass filter that doesn't suffer from transients.
     Normalized at DC.
     """
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     srate = get_srate(srate)
     dw = two_pi / srate
     y0 = 0j
@@ -307,11 +311,13 @@ def _dc_twozero(source):
         yield x1 - x2 - x2 + x0
 
 
-def dynamic_highpass(source, frequency, Q, srate=None):
+def dynamic_highpass(source, frequency, Q=i_sqrt_two, srate=None):
     """
     Dynamic high pass filter that doesn't suffer from transients.
     Normalized at nyquist.
     """
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     srate = get_srate(srate)
     dw = two_pi / srate
     y0 = 0j
@@ -341,16 +347,16 @@ def _dc_nyquist_twozero(source):
         yield x1 - x0
 
 
-def dynamic_bandpass(source, frequency, Q, srate=None):
+def dynamic_bandpass(source, frequency, Q=i_sqrt_two, srate=None):
     """
     Dynamic band pass filter that doesn't suffer from transients.
     Peak amplitude normalized.
     """
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     srate = get_srate(srate)
     dw = two_pi / srate
     y0 = 0j
-    frequency = to_iterable(frequency)
-    Q = to_iterable(Q)
     for sample, f, q in zip(_dc_nyquist_twozero(source), frequency, Q):
         w0 = dw * f
         cosw0 = cos(w0)
@@ -362,10 +368,12 @@ def dynamic_bandpass(source, frequency, Q, srate=None):
         yield y0.real
 
 
-def dynamic_allpass(source, frequency, Q, srate=None):
+def dynamic_allpass(source, frequency, Q=i_sqrt_two, srate=None):
     """
     Dynamic all pass filter that doesn't suffer from transients.
     """
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     srate = get_srate(srate)
     dw = two_pi / srate
     y0 = 0j
@@ -387,11 +395,13 @@ def dynamic_allpass(source, frequency, Q, srate=None):
         x1 = sample
 
 
-def dynamic_bandreject(source, frequency, Q, srate=None):
+def dynamic_bandreject(source, frequency, Q=i_sqrt_two, srate=None):
     """
     Dynamic band reject filter that doesn't suffer from transients.
     Normalized at DC and nyquist.
     """
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     srate = get_srate(srate)
     dw = two_pi / srate
     y0 = 0j

@@ -228,6 +228,10 @@ clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else 
 epsilon = 1e-10
 
 
+def equal(a, b):
+    return abs(a - b) <= epsilon
+
+
 two_pi = 2.0 * math.pi
 
 

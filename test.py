@@ -304,7 +304,27 @@ s = [0.1 + t / 5.0 for t in time(5)]
 
 #s = [0.1 * constant_series_n_mu(cis(t), 1.5).real for t in time(1)]
 
-s = gain(irfft_osc_gen(f, ([0, 0.9 * cosine(t * 5), -0.5 * sine(t * 4), 0.1 * exp(-t * 0.5), 0.05 * exp(-t)] for t in time_dt_gen(0.1))), 0.1)
+#s = gain(irfft_osc_gen(f, ([0, 0.9 * cosine(t * 5), -0.5 * sine(t * 4), 0.1 * exp(-t * 0.5), 0.05 * exp(-t)] for t in time_dt_gen(0.1))), 0.1)
+
+w = irfft_waveform([cunit() * i ** -0.5 / 50.0 for i in range(200) if i > 0])
+w1 = irfft_waveform([cunit() * i ** -0.5 / 50.0 for i in range(200) if i > 0])
+
+w = WaveForm(irfft([b * abs(b) ** -0.6 * i ** -1 if i > 0 else 0.0 for i, b in enumerate(rfft((uniform(256))))]))
+#w = WaveForm(uniform(128))
+
+f = [75 + t for t in time(10)]
+
+s = [w(t * f + sine(t * f * 0.51) * t) for t, f in zip(time_gen(), f)]
+
+s = gain(dynamic_lowpass(s, (200 + t * 100 * softrect(t + cub(t * 2) * 0.1, 0.8, 0.8) for t in time_gen()), 1), 10.0)
+
+s = mix([s, lpf(s, 300)], [1, 0.4])
+
+#n = uniform(1024)
+#print(n)
+#print(irfft(rfft(n)))
+#print(all(equal(o, i) for o, i in zip(n, irfft(rfft(n)))))
+
 
 play(s)
 
