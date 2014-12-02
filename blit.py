@@ -15,8 +15,9 @@ def sine_series(x, n):
     floor_n = floor(n)
     mu = n - floor_n
     x *= pi
-    s = sin(floor_n * x)
-    return -tan(x + half_pi) * s * s + sin(2.0 * floor_n * x) * (mu - 0.5)
+    floor_n_x = floor_n * x
+    s = sin(floor_n_x)
+    return -tan(x + half_pi) * s * s + sin(floor_n_x + floor_n_x) * (mu - 0.5)
 
 
 def sineblit_gen(frequency, srate=None):
@@ -64,7 +65,8 @@ def constant_series_n_mu(z, n):
         return n
     floor_n = floor(n)
     mu = n - floor_n
-    return (1 - z ** floor_n) / z1 + mu * z ** floor_n
+    z_floor_n = z ** floor_n
+    return (1 - z_floor_n) / z1 + mu * z_floor_n
 
 
 def blit_gen(frequency, sharpness=1.0, shift=0.0, phase=0.0, srate=None, leak_constant=0.95):

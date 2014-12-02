@@ -287,23 +287,25 @@ s = gain(s, 0.1)
 
 #s = [sine(220 * t) * n0 + cosine(220 * t) * n1 for t, n0, n1 in zip(time(10), lpnoise_gen(15, 3), lpnoise_gen(15, 3))]
 
-f = [1.0 + t * 2250 / 5.0  for t in time(5)]
+f = [1.0 + t * 2250  for t in time(10)]
 
 s = [0.1 + t / 5.0 for t in time(5)]
-
-
 
 #s = gain(dynamic_bpf0(s, repeat(20000), repeat(10)), 0.5)
 #s = gain(dynamic_resonator(s, repeat(1), repeat(20000), repeat(10)), 0.5)
 
 #s = gain(dynamic_lpf(s, repeat(20000), repeat(10.51)), 0.5)
 
-s = gain(sawblit(f, s, 0.5, 0.0), 0.1)
+#print (len(constant_t(220, 1)))
+
+#s = gain(dynamic_lowpass(sineblit([500 - f * 0.01 for f in f]), [f * 0.2 for f in f], [15 + 14 * sine(t * 3) for t in time(5)]), 0.01)
 
 #s = [0.1 * sine_odd_series(t, 10) for t in time(1)]
 
 #s = [0.1 * constant_series_n_mu(cis(t), 1.5).real for t in time(1)]
 
-#play(s)
+s = gain(irfft_osc_gen(f, ([0, 0.9 * cosine(t * 5), -0.5 * sine(t * 4), 0.1 * exp(-t * 0.5), 0.05 * exp(-t)] for t in time_dt_gen(0.1))), 0.1)
+
+play(s)
 
 save(s, "temp.wav")

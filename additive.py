@@ -96,7 +96,7 @@ def log_drum_coefs(k, f, t):
 
 
 def irfft_waveform(window):
-    derivates_window = [6.283185307179586j * b * i for i, b in enumerate(window)]
+    derivates_window = [two_pi_j * b * i for i, b in enumerate(window)]
     window = rpad(window + [0.0] * len(window))
     derivates_window = rpad(derivates_window + [0.0] * len(derivates_window))
     values = unnormalized_irfft(window)
@@ -104,3 +104,32 @@ def irfft_waveform(window):
     ct = CubicTable(zip(values, derivatives), periodic=True)
     l = len(ct)
     return lambda p: ct(p * l)
+
+
+# TODO: Fade bandwidth.
+def irfft_osc_gen(frequency, windows, dt=0.1, srate=None):
+    srate = get_srate(srate)
+    nyquist = 0.5 * srate
+    dt_ = 1.0 / srate
+    i_dt = 1.0 / dt
+    frequency = iter(frequency)
+    if isinstance(windows, Sequence):
+        if not isinstance(windows[0], Sequence):
+            windows = repeat(windows)
+    windows = iter(windows)
+    f = next(frequency)
+    window1 = [b for i, b in enumerate(next(windows)) if i * f < nyquist]
+    wf1 = irfft_waveform(window1)
+    yield wf1(0)
+    t = dt + dt_
+    phase = dt_ * f
+    for f in frequency:
+        if t > dt:
+            wf0 = wf1
+            window1 = [b for i, b in enumerate(next(windows)) if i * f < nyquist]
+            wf1 = irfft_waveform(window1)
+            t -= dt
+        w0 = wf0(phase)
+        yield w0 + t * i_dt * (wf1(phase) - w0)
+        phase += dt_ * f
+        t += dt_

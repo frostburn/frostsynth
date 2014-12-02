@@ -45,14 +45,14 @@ def zero_t(duration, srate=None):
     return zero(int(duration * srate))
 
 
-def constant(k, value=1.0):
+def constant(value, k):
     return [value] * k
 
 
-def constant_t(duration, value, srate=None):
+def constant_t(value, duration, srate=None):
     if srate is None:
         srate = _srate
-    return constant(int(duration * srate), value=value)
+    return constant(value=value, k=int(duration * srate))
 
 
 def impulse(k, value=1.0):

@@ -349,6 +349,8 @@ def dynamic_bandpass(source, frequency, Q, srate=None):
     srate = get_srate(srate)
     dw = two_pi / srate
     y0 = 0j
+    frequency = to_iterable(frequency)
+    Q = to_iterable(Q)
     for sample, f, q in zip(_dc_nyquist_twozero(source), frequency, Q):
         w0 = dw * f
         cosw0 = cos(w0)
