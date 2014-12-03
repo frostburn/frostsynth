@@ -2,9 +2,9 @@ from random import *
 from cmath import rect as from_polar
 from math import sqrt
 
-from base import *
-from interpolation import *
-from ffi import uniform as fast_uniform
+from frostsynth import *
+from frostsynth.interpolation import *
+from frostsynth.ffi import uniform as fast_uniform
 
 
 def fast_uniform_t(duration, srate=None):

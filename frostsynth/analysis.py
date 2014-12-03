@@ -2,8 +2,8 @@ from math import cos, pi
 from cmath import polar
 from itertools import count
 
-from base import get_srate, two_pi
-from fft import *
+from frostsynth import get_srate, two_pi
+from frostsynth.fft import *
 
 
 def delta_phi(phi1, phi2):

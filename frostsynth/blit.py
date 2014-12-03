@@ -1,7 +1,7 @@
 from math import *
 from cmath import exp as cexp
 
-from base import *
+from frostsynth import *
 
 
 half_pi = 0.5 * pi

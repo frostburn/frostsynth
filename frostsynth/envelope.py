@@ -1,6 +1,6 @@
 from math import *
 
-from base import *
+from frostsynth import *
 
 
 def decay_envelope_gen(amplitude, decay, srate=None):

@@ -1,6 +1,6 @@
 from itertools import *
 
-from interpolation import *
+from frostsynth.interpolation import *
 
 
 def resampler1_gen(source, ratio):

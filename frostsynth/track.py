@@ -1,7 +1,7 @@
 from math import log
 from itertools import repeat
 
-from base import *
+from frostsynth import *
 
 
 def step_sequence_gen(track, click=False, fillvalue=0.0, t=None, srate=None):
@@ -78,7 +78,7 @@ def ftom(f):
     return 69 + 12 * log(f / 440.0, 2)
 
 
-#Spam the International names of midi pitches into the namespace.
+# Spam the International names of midi pitches into the namespace.
 pitch_names = {}
 for octave in range(10):
     for i, key in enumerate(["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]):
@@ -88,6 +88,21 @@ for octave in range(10):
         exec(name + "=" + str(value))
     for i, key in [(-1, "Cb"), (1, "Cs"), (3, "Ds"), (5, "Es"), (4, "Fb"), (6, "Fs"), (8, "Gs"), (10, "As"), (12, "Bs")]:
         exec( key + str(octave) + " = " + str(12 * (octave + 1) + i))
+
+# Interval names
+P1 = d2 = unison = prime = 0
+m2 = A1 = minor_second = semitone = 1
+M2 = d3 = major_second = tone = 2
+m3 = A2 = minor_third = 3
+M3 = d4 = major_third = 4
+P4 = A4 = fourth = 5
+d5 = A4 = tritone = 6
+P5 = d6 = fifth = 7
+m6 = A5 = minor_sixth = 8
+M9 = d7 = major_sixth = 9
+m7 = A6 = minor_seventh = 10
+M7 = d8 = major_seventh = 11
+P8 = A7 = octave = 12
 
 
 class Event(object):
@@ -193,4 +208,29 @@ def loop(track, times, offset):
     for i in range(times):
         for absolute_event in track:
             result.append(absolute_event.copy(offset * i))
+    return result
+
+
+
+def percussion_sequence_to_sound(track, srate=None):
+    """
+    Turns list of (instrument, duration, velocity) tuples into sound.
+    """
+    srate = get_srate(srate)
+    duration = 1.0
+    velocity = 0.7
+    t = 0.0
+    result = []
+    for tple in track:
+        if hasattr(tple,'__getitem__'):
+            instrument = tple[0]
+            if len(tple) > 1:
+                duration = tple[1]
+                if len(tple) > 2:
+                    velocity = tple[2]
+        else:
+            inst = tple
+        instrument_sound = instrument(Percussion(velocity=velocity, srate=srate))
+        result = merge(result, instrument_sound, int(t * srate))
+        t += duration
     return result

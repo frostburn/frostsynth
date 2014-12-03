@@ -1,8 +1,8 @@
 from math import *
 from cmath import rect as from_polar, exp as cexp
 
-from base import *
-from filters.base import *
+from frostsynth import *
+from frostsynth.filters.base import *
 
 
 def decay(source, factor=0.01, gain=1.0, duration=1.0, normalized=True, srate=None):

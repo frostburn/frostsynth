@@ -222,6 +222,22 @@ def to_sequence(source, n):
         return [source] * n
 
 
+class Infinitee(object):
+    def __init__(self, generator):
+        self.generator = generator
+
+    def __iter__(self):
+        self.generator, t = tee(self.generator)
+        return t
+
+
+def interlace(*iterables):
+    iterables = [iter(it) for it in iterables]
+    while True:
+        for it in iterables:
+            yield next(it)
+
+
 clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)
 
 

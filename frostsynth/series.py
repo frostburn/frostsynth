@@ -1,6 +1,6 @@
 from cmath import log as clog, atanh as catanh
 
-from base import epsilon
+from frostsynth import epsilon
 
 
 def constant_series(z):

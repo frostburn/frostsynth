@@ -1,7 +1,7 @@
 from math import *
 from cmath import exp as cexp
 
-from base import epsilon, clip, two_pi, two_pi_j, i_pi
+from frostsynth import epsilon, clip, two_pi, two_pi_j, i_pi
 
 __all__ = [
     "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
@@ -176,8 +176,9 @@ def softrect2(phase, tension, duty=0.5):
 
 def softsquare(phase, sharpness):
     x = two_pi * phase
-    s = clip(sharpness, epsilon - 1, 1 - epsilon)
-    return sin(x) / sqrt(1 - s * cos(x) ** 2)
+    s = clip(sharpness, epsilon, 1 - epsilon)
+    a = 2 * s / (1 - s * s)
+    return atan(a * sin(x)) / atan(a)
 
 
 def softsquare2(phase, tension, bias=0.5):
@@ -191,9 +192,8 @@ def softsquare2(phase, tension, bias=0.5):
 
 def softsquare3(phase, sharpness):
     x = two_pi * phase
-    s = clip(sharpness, epsilon, 1 - epsilon)
-    a = 2 * s / (1 - s * s)
-    return atan(a * sin(x)) / atan(a)
+    s = clip(sharpness, epsilon - 1, 1 - epsilon)
+    return sin(x) / sqrt(1 - s * cos(x) ** 2)
 
 
 def softtriangle(phase, sharpness):

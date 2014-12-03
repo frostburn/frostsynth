@@ -1,6 +1,6 @@
 from math import *
 
-from base import *
+from frostsynth import *
 
 
 def sinehorn_gen(freq, sharpness):

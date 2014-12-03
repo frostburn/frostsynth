@@ -1,7 +1,7 @@
 from itertools import *
 
-from base import *
-from filters.base import *
+from frostsynth import *
+from frostsynth.filters.base import *
 
 
 def delay(iterable, k, fillvalue=0.0):

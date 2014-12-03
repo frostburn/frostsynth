@@ -3,25 +3,24 @@ from math import *
 from random import *
 from cmath import exp as cexp, log as clog
 
-from base import *
-from fft import *
-from waveform import *
-from instrument import *
-from analysis import *
-from series import *
-from osc import *
-from filters import *
-from noise import *
-from additive import *
-from envelope import *
-from track import *
-from resample import *
-from polytable import *
-from blit import *
-from aplayout import play
-import wavein
-from waveout import save
-from ffi import malloc_copy
+from frostsynth import *
+from frostsynth.fft import *
+from frostsynth.waveform import *
+from frostsynth.instrument import *
+from frostsynth.analysis import *
+from frostsynth.series import *
+from frostsynth.osc import *
+from frostsynth.filters import *
+from frostsynth.noise import *
+from frostsynth.additive import *
+from frostsynth.envelope import *
+from frostsynth.track import *
+from frostsynth.resample import *
+from frostsynth.polytable import *
+from frostsynth.blit import *
+from frostsynth.aplayout import play, stereo_play
+from frostsynth.waveout import save, stereo_save
+from frostsynth.ffi import malloc_copy
 
 srate = get_srate()
 
@@ -121,211 +120,25 @@ s = list(reverb(s))
 #print(s)
 
 perc = Percussion(velocity=0.787401574803)
-"""
-def convolve(source, kernel, mode="tail"):
-    if mode != "tail":
-        raise ValueError("Only tail mode implemented")
-    kernel = kernel[::-1]
-    l = len(kernel)
-    buf = [0.0] * (len(source) + l - 1)
-    for i in range(l)):
-        buf[i] = sum(s * k for s, k in zip(source, kernel[-i - 1:])
-    for i in range(len(source)):
-        buf[i + l] = sum(s * k for s, k in zip(source[i + 1:len], kernel))
-"""
-"""
-with Srate(srate * 8):
-    s = [0.5 * cub(t * 1000 + cub(t * 3000) * exp(-5 * t)) * exp(-3 * t) for t in time(1)]
 
-    s += [0.5 * cub(t * 1500 + cub(t * 4000) * exp(-5 * t)) * exp(-3 * t) for t in time(2)]
 
-    s = list(lpf(lpf(s, 40000), 40000))[::8]
 
-kernel = [0.01 * n for i, n in enumerate(fast_uniform(2000))]
+p = [(kick, 0.5, 0.7), kick]
 
-s = list(comb(convolve_list(s, kernel), 2001, 0.7))
-#s = list(convolve(s, kernel))
 
+#s = percussion_sequence_to_sound(p)
 
-"""
-"""
-def r(s, frequency=0.025, Q=10):
-    def g(frequency):
-        i = 0
-        while True:
-            i += 1
-            if i == 200:
-                frequency /= 2
-            w0 = 2.0 * pi * frequency
-            cosw0 = cos(w0)
-            alpha = sin(w0) / (2.0 * Q)
-            yield (1.0 + alpha, -2.0 * cosw0, 1.0 - alpha, 1, 0, 0)
+#s = [sine(220 * t)*0.5 for t in time(2)]
 
-    return dynamic_biquad(s, g(frequency))
+import frostsynth.songs.intro
 
+#play(s)
 
-def res(s, frequency=0.025, decay=0.25):
-    y0 = 0j
-    for i, sample in enumerate(s):
-        if i == 200:
-            frequency /= 2
-        a1 = cexp(-(decay + two_pi_j) * frequency)
-        y0 = 1j * sample + a1 * y0
-        yield y0.real
+#save(s, "temp.wav")
 
+#left = timeslice(comb_t(s, 2 * beat - 0.02, 0.51), 128 * beat)
+#right = timeslice(comb_t(s, 2 * beat + 0.02, 0.5), 128 * beat)
 
+#stereo_play(left, right)
 
-
-s = [1] + [0] * 400
-
-s = list(r(s))
-
-print(s)
-"""
-
-#s = fast_uniform_t(5)
-#s0 = s
-#f = [1 + t * 4410 for t in time(5)]
-
-#s = gain(dynamic_bpf0(s, f, repeat(0.6)), 0.1)
-#s = gain(dynamic_bandpass(s, f, repeat(10)), 0.1)
-
-#s = mix([s, s0])
-
-#s = gain(s, 0.1)
-
-#s = malloc_copy(8, 5000)
-#set_srate(22050)
-
-"""
-phase = integrate_gen(map(mtof, eased_step_gen(cycle([(C4, 0.2, 0.05), E4, G4]))))
-amplitude = eased_step_gen(cycle([(1, 0.15, 0.01), (0, 0.05, 0.02)]))
-
-s = [(saw(p) + saw(p + 2 * t)) * 0.5 * a for t, p, a in zip(time(3), phase, amplitude)]
-
-#n = gain(uniform(200), 0.05)
-
-ks = ([0.01 * sin((2000 + T * 200) * t + 7 * sin((5000 - T * 1000) * t)) for t in time(0.05)] for T in time_dt_gen(0.01))
-
-s = dynamic_convolve(s, ks, dt=0.01)
-
-#s = comb(s, 500, 0.9)
-
-#s = reverb(s)
-
-s = gain(s, 0.5)
-"""
-
-#s = list(bpf0([1] + [0] * 10000, 11025, 1))
-#s /= max(s)
-"""
-from cmath import sqrt as csqrt
-
-def dynamic_resonator(source, frequency, Q, srate=None):
-    srate = get_srate(srate)
-    dt = 1.0 / srate
-    y0 = 0.0j
-    for sample, f, q in zip(source, frequency, Q):
-        w0 = two_pi * f * dt
-        cosw0 = cos(w0)
-        alpha = sin(w0) / (2.0 * q)
-        a1 = (cosw0 + csqrt(alpha ** 2 + cosw0 ** 2 - 1.0)) / (1 + alpha)
-        y0 = 1j * sample + a1 * y0
-        yield y0.real
-"""
-
-def quadratic_onepole(source, a, b, aa, ab, bb):
-    y = 0
-    for sample in source:
-        y = b * sample + a * y + bb * sample ** 2 + ab * sample * y + aa * y ** 2
-        yield y
-
-
-#s = [cub(t * 220 + t * t * 10) + par(t * 330 + t * t * 10) for t in time(2)]
-#s0 = s
-#f = [1 + t * 4400 for t in time(5)]
-
-#s = gain(quadratic_onepole(s, -0.3, 0.9, 0, -0.5, 0), 0.05)
-
-"""
-s = zero_t(2)
-for i in range(0, 12 * 2):
-    f = 110 * 2 ** (i / 12)
-    p = [cub(t * f + 0.4 * cub(t * f * 3) * exp(-6 * t)) * exp(-3 * t) for t in time(2)]
-    s = add(s, p)
-
-k = gain(s, 0.0002)
-
-f = 220
-s = [cub(t * f + 0.4 * cub(t * f * 3) * exp(-6 * t)) * exp(-3 * t) for t in time(2)]
-
-s = add(convolve(s, k), s)
-
-s = gain(s, 0.1)
-"""
-
-#s = []
-#for f in [220, 220 * 1.5, 440]:
-#    s += [cub(t * f + 0.4 * cub(t * f * 6 + n) * exp(-6 * t) + 2 * t * cub(t * f - n) * exp(-5 * t)) * exp(-3 * t) for t, n in zip(time(2), snow3_gen(f * 0.01))]
-
-#s = gain(mix([s, grand(s)], [5, 1]), 0.005)
-
-#s = gain(list(reverb(s)), 0.4)
-
-#s = impulse(1000)
-
-#d = 0.6
-#g = 1.0
-
-#s = list(onepole(s, 1, -d, g * (1 - d)))
-
-#print(mtof(A2))
-
-
-
-
-
-#s = [sine(220 * t) * n0 + cosine(220 * t) * n1 for t, n0, n1 in zip(time(10), lpnoise_gen(15, 3), lpnoise_gen(15, 3))]
-
-f = [1.0 + t * 2250  for t in time(10)]
-
-s = [0.1 + t / 5.0 for t in time(5)]
-
-#s = gain(dynamic_bpf0(s, repeat(20000), repeat(10)), 0.5)
-#s = gain(dynamic_resonator(s, repeat(1), repeat(20000), repeat(10)), 0.5)
-
-#s = gain(dynamic_lpf(s, repeat(20000), repeat(10.51)), 0.5)
-
-#print (len(constant_t(220, 1)))
-
-#s = gain(dynamic_lowpass(sineblit([500 - f * 0.01 for f in f]), [f * 0.2 for f in f], [15 + 14 * sine(t * 3) for t in time(5)]), 0.01)
-
-#s = [0.1 * sine_odd_series(t, 10) for t in time(1)]
-
-#s = [0.1 * constant_series_n_mu(cis(t), 1.5).real for t in time(1)]
-
-#s = gain(irfft_osc_gen(f, ([0, 0.9 * cosine(t * 5), -0.5 * sine(t * 4), 0.1 * exp(-t * 0.5), 0.05 * exp(-t)] for t in time_dt_gen(0.1))), 0.1)
-
-w = irfft_waveform([cunit() * i ** -0.5 / 50.0 for i in range(200) if i > 0])
-w1 = irfft_waveform([cunit() * i ** -0.5 / 50.0 for i in range(200) if i > 0])
-
-w = WaveForm(irfft([b * abs(b) ** -0.6 * i ** -1 if i > 0 else 0.0 for i, b in enumerate(rfft((uniform(256))))]))
-#w = WaveForm(uniform(128))
-
-f = [75 + t for t in time(10)]
-
-s = [w(t * f + sine(t * f * 0.51) * t) for t, f in zip(time_gen(), f)]
-
-s = gain(dynamic_lowpass(s, (200 + t * 100 * softrect(t + cub(t * 2) * 0.1, 0.8, 0.8) for t in time_gen()), 1), 10.0)
-
-s = mix([s, lpf(s, 300)], [1, 0.4])
-
-#n = uniform(1024)
-#print(n)
-#print(irfft(rfft(n)))
-#print(all(equal(o, i) for o, i in zip(n, irfft(rfft(n)))))
-
-
-play(s)
-
-save(s, "temp.wav")
+#stereo_save(left, right, "temp.wav")

@@ -1,9 +1,9 @@
 from math import *
 from itertools import *
 
-from base import *
-from fft import *
-from polytable import *
+from frostsynth import *
+from frostsynth.fft import *
+from frostsynth.polytable import *
 
 
 def sineping_gen(amplitude, frequency, decay, theta=0, srate=None):

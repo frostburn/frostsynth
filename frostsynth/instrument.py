@@ -1,15 +1,15 @@
 from math import *
 from cmath import exp as cexp
 
-from base import *
-from waveform import *
-from filters import *
-from envelope import *
-from noise import *
-from series import *
-from additive import *
-from analysis import *
-from resample import *
+from frostsynth import *
+from frostsynth.waveform import *
+from frostsynth.filters import *
+from frostsynth.envelope import *
+from frostsynth.noise import *
+from frostsynth.series import *
+from frostsynth.additive import *
+from frostsynth.analysis import *
+from frostsynth.resample import *
 
 # TODO: Pass srate around correctly
 
@@ -101,7 +101,7 @@ def log_drum(note):
 
 
 def kick(percussion):
-    return list(hpf([0.5 * cub((180 + percussion.velocity * 40) * exp(-t * 20.0) / 20.0) for t in time(0.25, srate=percussion.srate)], 20.0, srate=percussion.srate))
+    return list(hpf([0.5 * cub((180 + percussion.velocity * 40) * (exp(-t * 20.0) - 1.0) / 20.0) for t in time(0.25, srate=percussion.srate)], 20.0, srate=percussion.srate))
 
 
 def snare(percussion):

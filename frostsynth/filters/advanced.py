@@ -1,11 +1,11 @@
 from collections import deque, Sequence
 
-from base import *
-from filters.base import *
-from filters.basic import *
-from filters.delay import *
-from ffi import convolve as convolve_list
-from track import A2, A4, mtof
+from frostsynth import *
+from frostsynth.filters.base import *
+from frostsynth.filters.basic import *
+from frostsynth.filters.delay import *
+from frostsynth.ffi import convolve as convolve_list
+from frostsynth.track import A2, A4, mtof
 
 
 def convolve_gen(iterable, kernel, tail=True):
