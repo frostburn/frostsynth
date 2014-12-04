@@ -101,18 +101,32 @@ def log_drum(note):
 
 
 def kick(percussion):
-    return list(hpf([0.5 * cub((180 + percussion.velocity * 40) * (exp(-t * 20.0) - 1.0) / 20.0) for t in time(0.25, srate=percussion.srate)], 20.0, srate=percussion.srate))
+    return list(hpf([0.5 * cub((180 + percussion.velocity * 40) * expm1(-t * 20.0) / 15.0) for t in time(0.25, srate=percussion.srate)], 20.0, srate=percussion.srate))
 
 
 def snare(percussion):
     freqs = [200, 220, 300, 325, 335, 400, 450, 500, 550, 630]
-    noise = list(lpf(uniform_t(1), 10000))
+    noise = list(lpf(fast_uniform_t(1), 10000))
     hp_noise = decay_env_gen(hpf(noise, 2000), 0.05 + 0.07 * percussion.velocity, 25)
     noise = decay_env_gen(noise, 0.3, 15)
 
     drum_part = sinepings_gen([0.4 / k ** (1.2 - 0.4 * percussion.velocity) for k in range(1, 10)], freqs, [10 + f * 0.015 for f in freqs])
 
-    return gain(mix([drum_part, noise, hp_noise]), 0.9 * percussion.velocity)
+    return gain(add(drum_part, noise, hp_noise), 0.9 * percussion.velocity)
+
+
+# TODO: Velocity. Needs some fine-tuning.
+def hard_snare(percussion):
+    noise = list(lpf(fast_uniform_t(1), 16000))
+    hp_noise = hold_release_env(hpf(noise, 1000), 0.07, 0.07, True)
+    noise = decay_env(noise, 0.5, 15)
+
+    partials = []
+    for a, f, d in zip([1.0, 0.1, 0.4, 0.05, 0.05], [200, 250, 450, 650, 750], [15, 20, 18, 16, 17]):
+        partials.append([a * sine(f * t - expm1(-t * 40) * 3) * exp(-t * d) for t in time(1)])
+    drum_part = mix(partials)
+
+    return gain(add(drum_part, noise, hp_noise), 0.2)
 
 
 def hihat(percussion):

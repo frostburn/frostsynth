@@ -12,6 +12,17 @@ def fast_uniform_t(duration, srate=None):
     return fast_uniform(int(duration * srate))
 
 
+def uniform_gen(vmin=-1.0, vmax=1.0):
+    """Generate uniform noise in the range from vmin to vmax."""
+    if vmin == 0.0 and vmax == 1.0:
+        while True:
+            yield random()
+    else:
+        scale = vmax - vmin
+        while True:
+            yield random() * scale + vmin
+
+
 def uniform(k=None, vmin=-1.0, vmax=1.0):
     """Generate uniform noise in the range from vmin to vmax."""
     if vmin == 0.0 and vmax == 1.0:
@@ -66,7 +77,7 @@ def snow0_gen(frequency, vmin=-1.0, vmax=1.0, variability=0.0, srate=None):
     """Constant interpolated white noise from vmin to vmax driven by 'frequency'."""
     srate = get_srate(srate)
     dt = 1.0 / srate
-    frequency = iter(frequency)
+    frequency = to_iterable(frequency)
 
     target = 1.0
     phase = target

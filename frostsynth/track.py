@@ -211,7 +211,6 @@ def loop(track, times, offset):
     return result
 
 
-
 def percussion_sequence_to_sound(track, srate=None):
     """
     Turns list of (instrument, duration, velocity) tuples into sound.
@@ -229,8 +228,11 @@ def percussion_sequence_to_sound(track, srate=None):
                 if len(tple) > 2:
                     velocity = tple[2]
         else:
-            inst = tple
+            instrument = tple
         instrument_sound = instrument(Percussion(velocity=velocity, srate=srate))
         result = merge(result, instrument_sound, int(t * srate))
         t += duration
     return result
+
+
+#TODO: percussion_sequence_to_sound_gen

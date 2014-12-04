@@ -204,3 +204,11 @@ for i in range(24):
     s = add(s, [cub(t * (440 + 55 * i) + n0 * 150.5) * (0.5 + 0.2 * n1) for t, n0, n1 in zip(time(10), lpnoise_gen(0.3, 4), lpnoise_gen(4, 3))])
 
 s = gain(s, 0.05)
+
+# Funny way to generate low-passed noise
+s = uniform_t(1)
+
+for i in range(20):
+    s = [x0 - x1 for x0, x1 in zip(s, s[1:])]
+
+s = gain(ringm(s, cycle([-1, 1])), 0.0000001)

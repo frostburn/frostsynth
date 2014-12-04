@@ -172,6 +172,16 @@ def timeslice(source, *args, **kwargs):
         return list(timeslice_gen(source, *args, **kwargs))
 
 
+def warmup_gen(source, t0, srate=None):
+    if srate is None:
+        srate = _srate
+    k = int(t0 * srate)
+    source = iter(source)
+    for i in range(k):
+        next(source)
+    return source
+
+
 def gain(source, g):
     return [s * g for s in source]
 
@@ -236,6 +246,14 @@ def interlace(*iterables):
     while True:
         for it in iterables:
             yield next(it)
+
+
+def pan(source, panning=0.5):
+    return gain(source, 2 * (1 - panning) if panning > 0.5 else 1), gain(source, 2 * panning if panning < 0.5 else 1)
+
+def stereo_mix(sources, amplitudes=None):
+    lefts, rights = zip(*sources)
+    return mix(lefts, amplitudes), mix(rights, amplitudes)
 
 
 clip = lambda a, a_min, a_max: a_min if a < a_min else (a_max if a > a_max else a)

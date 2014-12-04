@@ -36,6 +36,11 @@ s = Infinitee(chain(timeslice(s, 128 * beat), zero_t(3)))
 left = list(comb_t(s, 2 * beat - 0.02, 0.51))
 right = list(comb_t(s, 2 * beat + 0.02, 0.5))
 
+p = [(kick, beat * 4, 0.7), (hard_snare, beat * 6), (kick, beat * 2), (hard_snare, beat * 4)] * 10
+s = percussion_sequence_to_sound(p)
+
+left, right = stereo_mix([(left, right), pan(s)], [0.5, 0.5])
+
 stereo_play(left, right)
 
 stereo_save(left, right, "temp.wav")

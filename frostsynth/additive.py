@@ -8,8 +8,7 @@ from frostsynth.polytable import *
 
 def sineping_gen(amplitude, frequency, decay, theta=0, srate=None):
     """Generates amplitude * sin(2 * pi * t * frequency + theta) * exp(-t * decay)."""
-    if srate is None:
-        srate = get_srate()
+    srate = get_srate(srate)
 
     dt = 1.0 / srate
 

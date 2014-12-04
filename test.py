@@ -18,6 +18,7 @@ from frostsynth.track import *
 from frostsynth.resample import *
 from frostsynth.polytable import *
 from frostsynth.blit import *
+from frostsynth.quantize import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
 from frostsynth.ffi import malloc_copy
@@ -122,20 +123,31 @@ s = list(reverb(s))
 perc = Percussion(velocity=0.787401574803)
 
 
+#beat = 0.1
 
-p = [(kick, 0.5, 0.7), kick]
 
 
-#s = percussion_sequence_to_sound(p)
 
 #s = [sine(220 * t)*0.5 for t in time(2)]
 
+
+#s = reverb(s)
+
+if False:
+    beat = 0.1
+    p = [(kick, beat * 4, 0.7), (hard_snare, beat * 6), (kick, beat * 2), (hard_snare, beat * 4)] * 4
+
+    s = percussion_sequence_to_sound(p)
+
+    s = dither(s)
+
+    play(s)
+
+    save(s, "temp.wav")
+
+#print (stereo_mix([([0,0], [1,2]), ([3, 4], [5, 6])]))
+
 import frostsynth.songs.intro
-
-#play(s)
-
-#save(s, "temp.wav")
-
 #left = timeslice(comb_t(s, 2 * beat - 0.02, 0.51), 128 * beat)
 #right = timeslice(comb_t(s, 2 * beat + 0.02, 0.5), 128 * beat)
 
