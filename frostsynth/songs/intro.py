@@ -25,18 +25,18 @@ from frostsynth.ffi import malloc_copy
 
 # Intro
 beat = 0.1
-pitch = eased_step_gen(cycle([(C3, 3 * beat, 0.02), (D3, beat), (G3, 2 * beat), (A3, 2 * beat)]))
+pitch = eased_step_gen([(C3, 3 * beat, 0.02), (D3, beat), (G3, 2 * beat), (A3, 2 * beat)] * 16)
 transpose = eased_step_gen(cycle([(unison, beat * 32, 0.02), (fifth, beat * 32)]))
 f = map(mtof, add_gen(pitch, transpose))
 p = integrate_gen(f)
 s = (0.25 * softsquare(p, 1 - exp(-t * 0.5)) for t, p in zip(time_gen(), p))
 
-s = Infinitee(chain(timeslice(s, 128 * beat), zero_t(3)))
+s = Infinitee(chain(s, zero_t(3)))
 
 left = list(comb_t(s, 2 * beat - 0.02, 0.51))
 right = list(comb_t(s, 2 * beat + 0.02, 0.5))
 
-p = [(kick, beat * 4, 0.7), (hard_snare, beat * 6), (kick, beat * 2), (hard_snare, beat * 4)] * 10
+p = [(kick, beat * 4, 0.7), (hard_snare, beat * 6), (kick, beat * 2), (hard_snare, beat * 4)] * 8
 s = percussion_sequence_to_sound(p)
 
 left, right = stereo_mix([(left, right), pan(s)], [0.5, 0.5])

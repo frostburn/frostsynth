@@ -105,6 +105,24 @@ def irfft_waveform(window):
     return lambda p: ct(p * l)
 
 
+def irfft_waveform2(windows, periodic_y=False):
+    data = []
+    for window in windows:
+        derivates_window = [two_pi_j * b * i for i, b in enumerate(window)]
+        window = rpad(window + [0.0] * len(window))
+        derivates_window = rpad(derivates_window + [0.0] * len(derivates_window))
+        values = unnormalized_irfft(window)
+        derivatives = irfft(derivates_window)
+        data.append(zip(values, derivatives))
+    xct = XCubicTable2D(data, periodic_x=True, periodic_y=periodic_y)
+    lx = xct.len_x
+    ly = xct.len_y
+    if periodic_y:
+        return lambda p, s: xct(p * lx, s * ly)
+    else:
+        return lambda p, s: xct(p * lx, s * (ly - 2))
+
+
 # TODO: Fade bandwidth.
 def irfft_osc_gen(frequency, windows, dt=0.1, srate=None):
     srate = get_srate(srate)

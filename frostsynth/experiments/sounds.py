@@ -212,3 +212,19 @@ for i in range(20):
     s = [x0 - x1 for x0, x1 in zip(s, s[1:])]
 
 s = gain(ringm(s, cycle([-1, 1])), 0.0000001)
+
+
+#Dilog
+N = 1000
+dilog_coefficients = []
+for index_imag in range(N):
+    for index_real in range(N):
+        z = (index_real + index_imag * 1j) / N - 0.5 - 0.5j
+        d2 = 1 / (1 - z) / (2 * N * N)
+        d = -clog(1 - z) / N
+        c = sum(z ** k / k ** -2 for k in range(1, 200))
+        dilog_coefficients.append([d2, d, c])
+
+ptc = PolyTableComplex(dilog_coefficients, N)
+
+s = [ptc(cexp(two_pi_j * t * 220) * 0.24 * (1 + sine(t)) * N + 0.5 * N + 0.5j * N).imag * 0.25 for t in time(2)]

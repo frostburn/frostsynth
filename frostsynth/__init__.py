@@ -65,6 +65,11 @@ def impulse_t(duration, value=1.0, srate=None):
     return impulse(int(duration * srate), value=value)
 
 
+def linspace(start, end, samples):
+    scale = (end - start) / (samples - 1)
+    return [start + i * scale for i in range(samples)]
+
+
 def range_t(*args, step=None, srate=None):
     if srate is None:
         srate = _srate

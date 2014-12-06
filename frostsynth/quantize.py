@@ -16,4 +16,4 @@ def dither(source, steps=32767):
     """
     i_steps = 1.0 / steps
     scale = 1.0 - i_steps
-    return [sample * scale + i_steps * (random() + random()) - i_steps for sample in source]
+    return [sample * scale + i_steps * (random() - random()) for sample in source]

@@ -2,6 +2,7 @@ from itertools import *
 from math import *
 from random import *
 from cmath import exp as cexp, log as clog
+import cmath
 
 from frostsynth import *
 from frostsynth.fft import *
@@ -133,21 +134,46 @@ perc = Percussion(velocity=0.787401574803)
 
 #s = reverb(s)
 
+
+def wf(phase, sharpness):
+    z = from_polar(sharpness, two_pi * phase)
+    return cmath.sin(z).imag
+    z1 = 1 - z
+    return (-clog(z1) + 0.3 * z ** 2 / z1 - 0.1 * z ** 7 / (1.1 - z) ** 2).imag
+
+#s = [wf(t * 100 - t * t + cub(t * 50 - t * t * 2) * (1 - exp(-t)), 0.6 + 0.3 * sine(t * t))  for t in time(5)]
+
+#s = [softtriangle(t * 100 - t * t + softsquare(t * 51 - 3 * t*t, 0.9 - t * 0.2) * (0.5 + 0.4 *sine(t)), 0.9) for t in time(3)]
+
+#s = [sine(s) for s in twozero(s, 1, 1, -2, 1)]
+
+windows = []
+
+for s in linspace(epsilon, 1, 10):
+    windows.append([cunit() * uniform(None, 0.5, 1) * s ** (i - 1) / i if i > 0 else 0.0j for i in range(500)])
+
+wf = irfft_waveform2(windows)
+
+s = [wf(t * 50, 0.9 + 0.08 * cub(t * 3)) * 0.1 for t in time(2)]
+
+
 if False:
     beat = 0.1
     p = [(kick, beat * 4, 0.7), (hard_snare, beat * 6), (kick, beat * 2), (hard_snare, beat * 4)] * 4
 
     s = percussion_sequence_to_sound(p)
 
-    s = dither(s)
+s = dither(s)
 
-    play(s)
+play(s)
 
-    save(s, "temp.wav")
+save(s, "temp.wav")
+
+
 
 #print (stereo_mix([([0,0], [1,2]), ([3, 4], [5, 6])]))
 
-import frostsynth.songs.intro
+#import frostsynth.songs.intro
 #left = timeslice(comb_t(s, 2 * beat - 0.02, 0.51), 128 * beat)
 #right = timeslice(comb_t(s, 2 * beat + 0.02, 0.5), 128 * beat)
 
