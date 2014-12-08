@@ -67,6 +67,9 @@ def eased_step_gen(track, t=None, srate=None):
         old_value = value
 
 
+def eased_step(track, t=None, srate=None):
+    return list(eased_step_gen(track, t, srate))
+
 
 def mtof(p):
     """Converts midi pitch to frequency."""
@@ -88,21 +91,23 @@ for octave in range(10):
         exec(name + "=" + str(value))
     for i, key in [(-1, "Cb"), (1, "Cs"), (3, "Ds"), (5, "Es"), (4, "Fb"), (6, "Fs"), (8, "Gs"), (10, "As"), (12, "Bs")]:
         exec( key + str(octave) + " = " + str(12 * (octave + 1) + i))
+    for i, key in [(-1, "Cf"), (1, "Df"), (3, "Ef"), (4, "Ff"), (6, "Gf"), (8, "Af"), (10, "Bf")]:
+        exec( key + str(octave) + " = " + str(12 * (octave + 1) + i))
 
 # Interval names
-P1 = d2 = unison = prime = 0
-m2 = A1 = minor_second = semitone = 1
-M2 = d3 = major_second = tone = 2
-m3 = A2 = minor_third = 3
-M3 = d4 = major_third = 4
-P4 = A4 = fourth = 5
-d5 = A4 = tritone = 6
-P5 = d6 = fifth = 7
-m6 = A5 = minor_sixth = 8
-M9 = d7 = major_sixth = 9
-m7 = A6 = minor_seventh = 10
-M7 = d8 = major_seventh = 11
-P8 = A7 = octave = 12
+P1 = dim2 = unison = prime = 0
+m2 = Aug1 = minor_second = semitone = 1
+M2 = dim3 = major_second = tone = 2
+m3 = Aug2 = minor_third = 3
+M3 = dim4 = major_third = 4
+P4 = Aug3 = fourth = 5
+dim5 = Aug4 = tritone = 6
+P5 = dim6 = fifth = 7
+m6 = Aug5 = minor_sixth = 8
+M9 = dim7 = major_sixth = 9
+m7 = Aug6 = minor_seventh = 10
+M7 = dim8 = major_seventh = 11
+P8 = Aug7 = octave = 12
 
 
 class Event(object):

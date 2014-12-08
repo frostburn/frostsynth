@@ -30,6 +30,11 @@ def feedforward(source, k, alpha=1.0):
             i = 0
 
 
+def feedforward_t(source, duration, alpha=1.0, srate=None):
+    srate = get_srate(srate)
+    return feedforward(source, int(srate * duration), alpha)
+
+
 def comb(source, k, alpha=1.0):
     """Feedback comb filter: y[n] = x[n] + alpha y[n-k]."""
     if k < 1:
@@ -45,8 +50,7 @@ def comb(source, k, alpha=1.0):
 
 
 def comb_t(source, duration, alpha=1.0, srate=None):
-    if srate is None:
-        srate = get_srate()
+    srate = get_srate(srate)
     return comb(source, int(srate * duration), alpha)
 
 

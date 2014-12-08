@@ -228,3 +228,16 @@ for index_imag in range(N):
 ptc = PolyTableComplex(dilog_coefficients, N)
 
 s = [ptc(cexp(two_pi_j * t * 220) * 0.24 * (1 + sine(t)) * N + 0.5 * N + 0.5j * N).imag * 0.25 for t in time(2)]
+
+
+#Wet and wild wub
+windows = []
+window = [cunit() * uniform(None, 0.3, 1) for i in range(100)]
+for s in linspace(epsilon, 1, 10):
+    norm = sum(i ** -(0.5 + s) for i in range(1, 100))
+    windows.append([b * i ** -(0.5 + s) / norm if i > 0 else 0.0 for i, b in enumerate(window)])
+
+wf = irfft_waveform2(windows)
+
+left = [wf(t * 50 - t*t+ cub(101 * t - t*t) * t * (t-2) * 2, 0.9 - exp(-t * 2) * 0.2) * 0.5 for t in time(2)]
+right = [wf(t * 50 - t*t+ cub(99 * t - t*t) * t * (t-2) * 2, 0.9 - exp(-t * 2) * 0.2) * 0.5 for t in time(2)]

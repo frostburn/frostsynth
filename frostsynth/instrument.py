@@ -71,6 +71,19 @@ def organ(note):
     return hold_release_env(resampler1_gen(s, ratio), note.duration, 0.1 - 0.04 * note.note_off_velocity)
 
 
+def flute(note):
+    srate = get_srate(note.srate)
+    k = round(0.5 * srate / note.frequency)
+    r_freq = 0.5 * srate / k
+    i_r_freq = 1.0 / r_freq
+    v = note.note_on_velocity
+    exitation = [(n * v + square(t * r_freq)) * v for n, t in zip(fast_uniform_t(note.duration + 0.1), time(note.duration + 0.1))]
+    exitation = hold_release_env(exitation, note.duration, 0.1 - 0.1 * note.note_off_velocity) + zero_t(0.5)
+    resonator = filtered_comb(feedforward(exitation, k, -1.0), k - 1, lambda s: twozero(s, -4 * 1.1 ** (200.0 / note.frequency), 1, 2, 1))
+    resonator = resampler3_gen(resonator, (freq * i_r_freq for freq in note.get_frequency_gen()))
+    return gain(resonator, 2.7 * (note.frequency if note.frequency < 1000 else 1000) ** -0.75)
+
+
 def dirty_steel_drum(note):
     t = note.duration + 1
     s = zero_t(t)

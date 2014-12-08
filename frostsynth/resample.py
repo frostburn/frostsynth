@@ -1,4 +1,4 @@
-from itertools import *
+from frostsynth import *
 
 from frostsynth.interpolation import *
 
@@ -6,7 +6,7 @@ from frostsynth.interpolation import *
 def resampler1_gen(source, ratio):
     """Dynamic resampling of 'source' by variable ratio. First order interpolation."""
     source = chain(source, [0.0])
-    ratio = iter(ratio)
+    ratio = to_iterable(ratio)
 
     index = 0.0
     sample0 = next(source)
@@ -24,7 +24,7 @@ def resampler1_gen(source, ratio):
 def resampler3_gen(source, ratio):
     """Dynamic resampling of 'source' by variable ratio. Third order Lagrange interpolation."""
     source = chain(source, [0.0, 0.0])
-    ratio = iter(ratio)
+    ratio = to_iterable(ratio)
 
     index = 0.0
     sample0 = 0.0

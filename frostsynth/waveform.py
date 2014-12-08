@@ -3,13 +3,14 @@ from cmath import exp as cexp
 
 from frostsynth import epsilon, clip, two_pi, two_pi_j, i_pi
 
-__all__ = [
-    "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
-    "rect", "square", "triangle", "tense",
-    "softsaw", "softsaw_complement", "softrect", "softrect2", "softsquare", "softsquare2", "softsquare3", "softtriangle",
-    "sine", "cosine", "cis",
-    "duplex", "bias"
-]
+if False:
+    __all__ = [
+        "saw", "saw_complement", "par", "par_complement", "cub", "cub_complement", "qua", "pen",
+        "rect", "square", "triangle", "tense",
+        "softsaw", "softsaw_complement", "softrect", "softrect2", "softsquare", "softsquare2", "softsquare3", "softtriangle",
+        "sine", "cosine", "cis",
+        "duplex", "bias"
+    ]
 
 
 def saw(phase):
@@ -23,6 +24,9 @@ def saw_complement(phase):
         a = epsilon
     #return log(1 + cos(t)) / pi + log(2) / pi
     return log(a) * i_pi + 0.2206356001526516
+
+
+sawc = saw_complement
 
 
 def par(phase):
@@ -56,6 +60,9 @@ def par_complement(phase):
     else:
         xx = (0.5 - x)
         return xx * (6.50377029198 - 39.1640305629 * xx) + 0.82780791828 * sqrt(xx)
+
+
+parc = par_complement
 
 
 def cub(phase):
@@ -94,16 +101,31 @@ def cub_complement(phase):
         return -141.683313066 + x * (890.871247193 + x * (-1877.70991482 + 1315.78489017 * x))
 
 
+cubc = cub_complement
+
+
 def qua(phase):
     x = phase - floor(phase + 0.5)
     x2 = x * x
     return 0.875 - x2 * (15 - 30 * x2)
 
 
-def pen(phase):
+def qui(phase):
     x = phase - floor(phase + 0.5)
     x2 = x * x
     return x * (5.96255602510703402 - x2 * (34.0717487148973373 - 40.8860984578768047 * x2))
+
+
+def sex(phase):
+    x = phase - floor(phase + 0.5)
+    x2 = x * x
+    return -0.96875 + x2 * (18.375 + x2 * (42 * x2 - 52.5))
+
+
+def sep(phase):
+    x = phase - floor(phase + 0.5)
+    x2 = x * x
+    return x * (x2 * (39.164736561902885 + x2 * (38.365456223904864 * x2 - 67.13954839183351)) - 6.19442261948464)
 
 
 def rect(phase, duty=0.5):
