@@ -94,7 +94,7 @@ def snow1_gen(frequency, vmin=-1.0, vmax=1.0, variability=0.0, srate=None):
     """Linear interpolated white noise from vmin to vmax driven by 'frequency'."""
     srate = get_srate(srate)
     dt = 1.0 / srate
-    frequency = iter(frequency)
+    frequency = to_iterable(frequency)
 
     y1 = uniform(vmin=vmin, vmax=vmax)
     target = 1.0
@@ -143,6 +143,9 @@ def _func_snow3_gen(func):
 
 
 snow3_gen = _func_snow3_gen(lagrange_four_point)
+
+
+snow3 = lambda frequency, vmin=-1.0, vmax=1.0, variability=0.0, srate=None: list(snow3_gen(frequency, vmin, vmax, variability, srate))
 
 
 spline_snow_gen = _func_snow3_gen(catmull_rom_spline)

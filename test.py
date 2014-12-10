@@ -148,25 +148,28 @@ def wf(phase, sharpness):
 #s = [softtriangle(t * 100 - t * t + softsquare(t * 51 - 3 * t*t, 0.9 - t * 0.2) * (0.5 + 0.4 *sine(t)), 0.9) for t in time(3)]
 
 #s = [sine(s) for s in twozero(s, 1, 1, -2, 1)]
-"""
-windows = []
-window = [cunit() * uniform(None, 0.4, 1) for i in range(100)]
-for s in linspace(0, 1, 10):
-    norm = sum(i ** -(1.5 - s) for i in range(1, 100))
-    windows.append([b * i ** -(1.5 - s) / norm if i > 0 else 0.0 for i, b in enumerate(window)])
+if False:
+    windows = []
+    window = [cunit() * uniform(None, 0.4, 1) for i in range(100)]
+    for s in linspace(0, 1, 10):
+        norm = sum(i ** -(1.5 - s) for i in range(1, 100))
+        windows.append([b * i ** -(1.5 - s) / norm if i > 0 else 0.0 for i, b in enumerate(window)])
 
-wf = irfft_waveform2(windows)
+    wf = irfft_waveform2(windows)
 
-wfm = lambda p, s, m, t: wf(p + cub(2 * p + t) * m, s)
+    wfm = lambda p, s, m, t: wf(p + cub(2 * p + t) * m, s)
 
-beat = 0.1
+    beat = 0.1
 
-pitch = eased_step_gen([(E1, 0), (C1, 16 * beat, 8 * beat), (G1, 8 * beat, 4 * beat), (Ef1, 8 * beat, 4 * beat)])
-p = integrate(map(mtof, pitch))
-s = eased_step([(0, 0), (1, 8 * beat, 8 * beat), (0, 8 * beat, 8 * beat)]) + []
-m = eased_step([(0, 0), (1, 8 * beat, 8 * beat), (0, 8 * beat, 8 * beat)])
+    pitch = eased_step_gen([(E1, 0), (C1, 16 * beat, 8 * beat), (G1, 8 * beat, 4 * beat), (Ef1, 8 * beat, 1 * beat), (C1, 8 * beat, 1 * beat)])
+    p = integrate(map(mtof, pitch))
+    s = eased_step([(0, 0), (1, 8 * beat, 8 * beat), (0, 8 * beat, 8 * beat)] + [(0.3, 2 * beat, 2 * beat), (0.9, 2 * beat, 2 * beat)] * 16)
+    m = eased_step([(0, 0), (1, 8 * beat, 8 * beat), (0, 8 * beat, 8 * beat)] + [(1.0, 32 * beat, 32 * beat)])
 
-s = [wfm(p, s, m, t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
+    #s = [wfm(p, s, m, t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
+
+    left = [wfm(p, s, m, t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
+    right = [wfm(p, s, m, -t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
 
 #left = [wfm(t * 50 - t * t, 0.9 - exp(-t * 2) * 0.2, t * (t-2) * 2, t) for t in time(2)]
 #right = [wfm(t * 50 - t * t, 0.9 - exp(-t * 2) * 0.2, t * (t-2) * 2, -t) for t in time(2)]
@@ -183,15 +186,22 @@ if False:
 
     s = percussion_sequence_to_sound(p)
 
-"""
 
+
+
+
+s = mix(noisy_saw(constant_t(mtof(p), 1)) for p in [C4, E4, G4, C5])
+
+s = gain(s, 0.2)
+
+#s = [triangle(qua(t * 40) * theta_rect(t, 0.7) + qua(t * 40 * 5) * theta_rect(t + 0.3, 0.7) + cub(t * 40 * 7) * theta_rect(t + 0.6, 0.9) + t * 40, 0.5 + 0.1 * t) * 0.5 for t in time(5)]
+
+#s = differentiate(s)
 
 
 #note.frequency = mtof(A3)
 #print(note.frequency)
 #s = flute(note)
-
-s = gain(note_list_to_sound(note_list, flute), 0.7)
 
 s = dither(s)
 
@@ -208,5 +218,4 @@ save(s, "temp.wav")
 #right = timeslice(comb_t(s, 2 * beat + 0.02, 0.5), 128 * beat)
 
 #stereo_play(left, right)
-
 #stereo_save(left, right, "temp.wav")

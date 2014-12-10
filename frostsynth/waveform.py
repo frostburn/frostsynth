@@ -154,6 +154,19 @@ def triangle(phase, bias=0.5):
         return 1.0 - (x + x) / (1.0 - bias)
 
 
+def parangle(phase, bias=0.5):
+    x = phase - floor(phase)
+    bias = clip(bias, epsilon, 1.0 - epsilon)
+    if x < bias:
+        return 8 * x * (bias - x) / bias;
+    else:
+        return 8 * (x - bias) * (x - 1) / (1 - bias)
+
+
+def parangleb(phase, bias=0.5):
+    return parangle(phase, bias) + 1.3333333333333333 - 2.6666666666666666 * bias
+
+
 def tense(phase, bias=0.5, tension=2):
     x = phase - floor(phase)
     bias = clip(bias, epsilon, 1.0)
@@ -224,6 +237,43 @@ def softtriangle(phase, sharpness):
     return asin(s * sin(x)) / asin(s)
 
 
+pi_squared = pi * pi
+
+
+def theta(phase, sharpness):
+    """DC-blocked peak-amplitude normalized EllipticTheta(3, pi * phase, sharpness)"""
+    q = sharpness
+    if q < epsilon:
+        return cos(two_pi * phase)
+    elif q < 0.2:
+        coefs = [q ** (n * n) for n in range(1, 6)]
+        return sum(c * cos(two_pi * n * phase) for n, c in enumerate(coefs, 1)) / sum(coefs)
+    elif q < 1:
+        x = phase - floor(phase + 0.5)
+        i_log_q = 1 / log(q)
+        a = pi_squared * i_log_q
+        b = 0.5 * sqrt(-pi * i_log_q)
+        return (sum(exp(a * (x - n) * (x - n)) for n in range(-2 , 3)) * b - 0.5) / ((1 + 2 * (exp(a) + exp(4 * a))) * b - 0.5)
+    else:
+        return 0.0
+
+
+def theta_rect(phase, sharpness):
+    """Peak-amplitude normalized EllipticTheta(3, pi * phase, sharpness)"""
+    q = sharpness
+    if q < epsilon:
+        return 0.5 * 0.5 * cos(two_pi * phase)
+    elif q < 0.2:
+        coefs = [q ** (n * n) for n in range(1, 6)]
+        return (1 + sum(c * cos(two_pi * n * phase) for n, c in enumerate(coefs, 1))) / (1 + sum(coefs))
+    elif q < 1:
+        x = phase - floor(phase + 0.5)
+        a = pi_squared / log(q)
+        return sum(exp(a * (x - n) * (x - n)) for n in range(-2 , 3)) / (1 + 2 * (exp(a) + exp(4 * a)))
+    else:
+        return 0.0
+
+
 def sine(phase):
     return sin(two_pi * phase)
 
@@ -232,12 +282,28 @@ def cosine(phase):
     return cos(two_pi * phase)
 
 
+def rsine(phase, vmin=0.0, vmax=1.0):
+   return vmin  + (sin(two_pi * phase) + 1) * 0.5 * (vmax - vmin)
+
+
+def rcosine(phase, vmin=0.0, vmax=1.0):
+   return vmin  + (cos(two_pi * phase) + 1) * 0.5 * (vmax - vmin)
+
+
 def cis(phase):
     return cexp(two_pi_j * phase)
 
 
-def duplex(func, x, bias=0.5):
-    return func(x) - func(x + bias)
+def duplex(func, phase, bias=0.5):
+    return func(phase) - func(phase + bias)
+
+
+def raised(func, phase, vmin=0.0, vmax=1.0):
+    return vmin + (func(phase) + 1) * 0.5 * (vmax - vmin)
+
+
+def raised0(func, phase, vmin=0.0, vmax=1.0):
+    return vmin + func(phase) * (vmax - vmin)
 
 
 def bias(phase, bias=0.5):

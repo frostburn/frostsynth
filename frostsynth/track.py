@@ -81,6 +81,11 @@ def ftom(f):
     return 69 + 12 * log(f / 440.0, 2)
 
 
+def itom(i):
+    """Converts midi interval to frequency multiplier."""
+    return 2 ** (i / 12.0)
+
+
 # Spam the International names of midi pitches into the namespace.
 pitch_names = {}
 for octave in range(10):

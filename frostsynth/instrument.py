@@ -71,6 +71,7 @@ def organ(note):
     return hold_release_env(resampler1_gen(s, ratio), note.duration, 0.1 - 0.04 * note.note_off_velocity)
 
 
+# TODO: Fix srate at 44100.0
 def flute(note):
     srate = get_srate(note.srate)
     k = round(0.5 * srate / note.frequency)

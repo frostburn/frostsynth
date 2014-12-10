@@ -70,6 +70,12 @@ def linspace(start, end, samples):
     return [start + i * scale for i in range(samples)]
 
 
+def linspace_t(start, end, duration, srate=None):
+    if srate is None:
+        srate = _srate
+    return linspace(start, end, int(duration * srate))
+
+
 def range_t(*args, step=None, srate=None):
     if srate is None:
         srate = _srate
