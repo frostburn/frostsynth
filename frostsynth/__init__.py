@@ -277,10 +277,13 @@ def equal(a, b):
     return abs(a - b) <= epsilon
 
 
-two_pi = 2.0 * math.pi
+two_pi = 2 * math.pi
 
 
 two_pi_j = two_pi * 1j
 
 
-i_pi = 1.0 / math.pi
+i_pi = 1 / math.pi
+
+
+i_two_pi = 1 / two_pi

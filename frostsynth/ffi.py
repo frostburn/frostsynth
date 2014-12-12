@@ -1,5 +1,7 @@
+from math import pi, floor
 from cffi import FFI
 
+from frostsynth import two_pi, i_two_pi
 
 __all__ = ["fft"]
 
@@ -16,6 +18,8 @@ ffi.cdef(
                   const double Kernel[/* KernelLen */], size_t KernelLen,
                   double Result[/* SignalLen + KernelLen - 1 */]);
     void malloc_copy(double result[], size_t length, size_t count);
+    double precycloid_m1(double x, double a);
+    double precycloid(double x, double a);
     """
 )
 
@@ -186,6 +190,47 @@ C = ffi.verify(
         }
         free(r);
     }
+
+    #define epsilon (1e-12)
+    #define PRECYCLOID_MAX_ITERATIONS (5)
+
+    double precycloid_m1(double x, double a)
+    {
+        int i;
+        double old_t;
+        double t = 1.8171205928321397 * pow(x, 0.3333333333333333) + 0.1 * x;
+        for (i = 0; i < PRECYCLOID_MAX_ITERATIONS; i++){
+            old_t = t;
+            t -= (t + a * sin(t) - x) / (1 + a * cos(t));
+            if (fabs(t - old_t) < epsilon){
+                break;
+            }
+        }
+        return t;
+    }
+
+    double precycloid(double x, double a)
+    {
+        int i;
+        double old_t, t;
+        if (x < 3.1){
+            double i_a1 = 1.0 / (1.0 + a);
+            double x_i_a1 = x * i_a1;
+            double y = x_i_a1 * x_i_a1 * i_a1;
+            t = x_i_a1 * (1 + y * (a * 0.16666666666666666 + y * (a * (a * 9 - 1) * 0.008333333333333333 + y * (a * (1 - a * (54 - a * 225))) * 0.0001984126984126984)));
+        }
+        else {
+            t = x;
+        }
+        for (i = 0; i < PRECYCLOID_MAX_ITERATIONS; i++){
+            old_t = t;
+            t -= (t + a * sin(t) - x) / (1 + a * cos(t));
+            if (fabs(t - old_t) < epsilon){
+                break;
+            }
+        }
+        return t;
+    }
     """,
     libraries=["m"]
 )
@@ -237,3 +282,21 @@ def malloc_copy(length, count):
     result = ffi.new("double[]", length * count)
     C.malloc_copy(result, length, count)
     return list(result)
+
+
+def precycloid(x, a=-1.0):
+    """Returns t such that x = t + a * sin(t)"""
+    if x == 0.0:
+        return 0.0
+    elif x < 0 or x > two_pi:
+        return floor(x * i_two_pi) * two_pi + precycloid(x % two_pi, a)
+    elif x > pi:
+        return two_pi - precycloid(two_pi - x, a)
+    elif a < -0.9 and x < 0.1:
+        return C.precycloid_m1(x, a)
+    elif a > 0.9 and x > 3.04:
+        return pi - C.precycloid_m1(pi - x, -a)
+    elif a < 0:
+        return pi - C.precycloid(pi - x, -a)
+    else:
+        return C.precycloid(x, a)

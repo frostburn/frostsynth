@@ -22,7 +22,7 @@ from frostsynth.blit import *
 from frostsynth.quantize import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
-from frostsynth.ffi import malloc_copy
+from frostsynth.ffi import malloc_copy, precycloid
 
 srate = get_srate()
 
@@ -204,9 +204,10 @@ def arc(phase):
 
 
 
-s = [twine(t * 220) * 0.5 for t in time(1)]
+#print (precycloid(0))
+s = [circleb(t * 220, t) * 0.5 for t in time(1)]
 
-s = [saw(t * 220) * 0.5 for t in time(1)] + s + [par(t * 220) * 0.5 for t in time(1)]
+#s = [saw(t * 220) * 0.5 for t in time(1)] + s + [par(t * 220) * 0.5 for t in time(1)]
 
 #s = differentiate(s)
 
@@ -223,7 +224,7 @@ s = [saw(t * 220) * 0.5 for t in time(1)] + s + [par(t * 220) * 0.5 for t in tim
 
 s = dither(s)
 
-play(s)
+#play(s)
 
 save(s, "temp.wav")
 

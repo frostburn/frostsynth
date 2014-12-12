@@ -2,6 +2,7 @@ from math import *
 from cmath import exp as cexp
 
 from frostsynth import epsilon, clip, two_pi, two_pi_j, i_pi
+from frostsynth.ffi import precycloid
 
 if False:
     __all__ = [
@@ -168,6 +169,19 @@ def square(phase, bias=0.5):
         return -1.0
 
 
+def circle(phase, bias=0.5):
+    x = phase - floor(phase)
+    bias = clip(bias, epsilon, 1.0 - epsilon)
+    if x < bias:
+        return sqrt(x * (bias - x) * 4 / (bias * bias))
+    else:
+        return -sqrt((x - bias) * (1 - x) * 4 / (1 + bias * (bias - 2)))
+
+
+def circleb(phase, bias=0.5):
+    return circle(phase, bias) - 1.5707963267948966 * bias + 0.7853981633974483
+
+
 def triangle(phase, bias=0.5):
     x = phase - floor(phase)
     bias = clip(bias, epsilon, 1.0 - epsilon)
@@ -286,6 +300,18 @@ def softsquare3(phase, sharpness):
     return sin(x) / sqrt(1 - s * cos(x) ** 2)
 
 
+def pcycloid(phase, sharpness=1):
+    if abs(sharpness) < epsilon:
+        return sin(two_pi * phase)
+    else:
+        x = (phase - floor(phase)) * two_pi
+        return (x - precycloid(x, sharpness)) / sharpness
+
+
+def cycloid(phase, sharpness=1):
+    return cos(precycloid(two_pi * phase, sharpness))
+
+
 def softtriangle(phase, sharpness):
     x = two_pi * phase
     s = clip(sharpness, epsilon, 1 - epsilon)
@@ -342,7 +368,7 @@ def rsine(phase, vmin=0.0, vmax=1.0):
 
 
 def rcosine(phase, vmin=0.0, vmax=1.0):
-   return vmin  + (cos(two_pi * phase) + 1) * 0.5 * (vmax - vmin)
+   return vmin  + (1 - cos(two_pi * phase)) * 0.5 * (vmax - vmin)
 
 
 def cis(phase):
