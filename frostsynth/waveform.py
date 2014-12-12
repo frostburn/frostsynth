@@ -29,6 +29,30 @@ def saw_complement(phase):
 sawc = saw_complement
 
 
+def twine(phase):
+    x = phase - floor(phase + 0.5)
+    #return sin(2 * asin(x + x))
+    return 4 * x * sqrt(1 - 4 * x * x)
+
+
+def sqrtwf(phase):
+    x = phase - floor(phase + 0.5)
+    if x > 0.0:
+        return sqrt(32 * x) - 8 *x
+    else:
+        return -sqrt(-32 * x) - 8 * x
+
+
+def halfcircle(phase):
+    x = phase - floor(phase + 0.5)
+    return sqrt(1 - 4 * x * x)
+
+
+def halfcircleb(phase):
+    x = phase - floor(phase + 0.5)
+    return sqrt(1.6211389382774044 - 6.484555753109618 * x * x) - 1
+
+
 def par(phase):
     x = phase - floor(phase + 0.5)
     return 6 * x * x - 0.5
@@ -165,6 +189,37 @@ def parangle(phase, bias=0.5):
 
 def parangleb(phase, bias=0.5):
     return parangle(phase, bias) + 1.3333333333333333 - 2.6666666666666666 * bias
+
+
+def paranglen(phase, bias=0.5):
+    return parangle(phase, bias) + 1 - 2 * bias
+
+
+def cubangle(phase, bias=0.5):
+    x = triangle(phase, bias)
+    return x * (1.5 - 0.5 * x * x)
+
+
+def tent(phase, bias=0.5):
+    x = triangle(phase, bias)
+    return x ** 3
+
+
+def quarangle(phase, bias=0.5):
+    x = phase - floor(phase)
+    bias = clip(bias, epsilon, 1.0 - epsilon)
+    if x < bias:
+        return 2 * bias * (1 - (2 * x / bias - 1) ** 4)
+    else:
+        return 2 * (1 - bias) * ((2 * (x - bias) / (1 - bias) - 1) ** 4 - 1)
+
+
+def quarangleb(phase, bias=0.5):
+    return quadangle(phase, bias) + 1.6 - 3.2 * bias
+
+
+def quaranglen(phase, bias=0.5):
+    return quadangle(phase, bias) + 1 - 2 * bias
 
 
 def tense(phase, bias=0.5, tension=2):

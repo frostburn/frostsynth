@@ -187,12 +187,30 @@ if False:
     s = percussion_sequence_to_sound(p)
 
 
+#def noisy_sof
+# gain(mix(map(saw, phase) for phase in noisy_phases(frequency, spread, noise_spread, noise_speed, count)), 0.4 / sqrt(count))
+
+#s = mix(noisy_saw(constant_t(mtof(p), 1)) for p in [C4, E4, G4, C5])
+
+#T = time(3)
+#s = mix(mix([softsquare2(p, rsine(t, 5.0, 20.0), rcosine(t * 2, 0.5, 0.7)) * 0.03 for t, p in zip(T, phase)] for phase in noisy_phases_gen(mtof(pitch))) for pitch in [C4, E4, G4, C5])
+
+#s = [twine(t * 220) * 0.5 for t in time(1)]
+
+
+def arc(phase):
+    x = phase - floor(phase + 0.5)
+    return cos(2 * asin(x + x))
 
 
 
-s = mix(noisy_saw(constant_t(mtof(p), 1)) for p in [C4, E4, G4, C5])
+s = [twine(t * 220) * 0.5 for t in time(1)]
 
-s = gain(s, 0.2)
+s = [saw(t * 220) * 0.5 for t in time(1)] + s + [par(t * 220) * 0.5 for t in time(1)]
+
+#s = differentiate(s)
+
+#s = gain(s, 0.2)
 
 #s = [triangle(qua(t * 40) * theta_rect(t, 0.7) + qua(t * 40 * 5) * theta_rect(t + 0.3, 0.7) + cub(t * 40 * 7) * theta_rect(t + 0.6, 0.9) + t * 40, 0.5 + 0.1 * t) * 0.5 for t in time(5)]
 
