@@ -54,6 +54,11 @@ def halfcircleb(phase):
     return sqrt(1.6211389382774044 - 6.484555753109618 * x * x) - 1
 
 
+def tang(phase):
+    x = phase - floor(phase + 0.5)
+    return (tanh(tan(pi * phase)) - x - x) * 3.5686502577037404
+
+
 def par(phase):
     x = phase - floor(phase + 0.5)
     return 6 * x * x - 0.5
@@ -151,6 +156,121 @@ def sep(phase):
     x = phase - floor(phase + 0.5)
     x2 = x * x
     return x * (x2 * (39.164736561902885 + x2 * (38.365456223904864 * x2 - 67.13954839183351)) - 6.19442261948464)
+
+
+def tooth(phase):
+    return tanh(tan(pi * phase) ** 2) * 2 -1
+
+
+def toothb(phase):
+    return tanh(tan(pi * phase) ** 2) * 1.643545436007719 -1
+
+
+half_pi = 0.5 * pi
+
+
+def tri(phase):
+    x = phase - floor(phase + 0.5)
+    return tanh(tan(two_pi * abs(x) - half_pi))
+
+
+two_per_pi = 2 / pi
+i_three_fourths_pi = 4 / (3 * pi)
+i_five_fourths_pi = 4 / (5 * pi)
+i_seven_fourths_pi = 4 / (7 * pi)
+four_pi = 4 * pi
+six_pi = 6 * pi
+eight_pi = 8 * pi
+ten_pi = 10 * pi
+fourteen_pi = 14 * pi
+
+
+def lissajous13(phase):
+    x = phase - floor(phase + 0.5)
+    l = atan2(sin(six_pi * phase), cos(two_pi * phase))
+    if x > 0.25 and l > 0:
+        l -= two_pi
+    elif x < -0.25 and l < 0:
+        l += two_pi
+    return l * two_per_pi + 4 * x
+
+
+def lissajous15(phase):
+    x = phase - floor(phase + 0.5)
+    l = atan2(sin(ten_pi * phase), cos(two_pi * phase))
+    if x > 0.25 and l < 0:
+        l += two_pi
+    elif x < -0.25 and l > 0:
+        l -= two_pi
+    return (l - two_pi * x) * 0.4754858331152377
+
+
+def lissajous21(phase):
+    return atan2(sin(two_pi * phase), cos(four_pi * phase)) * i_three_fourths_pi
+
+
+def lissajous23(phase):
+    x = phase - floor(phase + 0.5)
+    l = atan2(sin(six_pi * phase), cos(four_pi * phase))
+    if x > 0 and l < 0:
+        l += two_pi
+    elif x < 0 and l > 0:
+        l -= two_pi
+    return l * i_five_fourths_pi
+
+
+def lissajous25(phase):
+    x = phase - floor(phase + 0.5)
+    l = atan2(sin(ten_pi * phase), cos(four_pi * phase))
+    if 0.15 < x < 0.35 and l > 0:
+        l -= two_pi
+    elif -0.35 < x < -0.15 and l < 0:
+        l += two_pi
+    return l * i_five_fourths_pi
+
+
+def lissajous27(phase):
+    x = phase - floor(phase + 0.5)
+    l = atan2(sin(fourteen_pi * phase), cos(four_pi * phase))
+    if 0.1 < x < 0.4 and l > 0:
+        l -= two_pi
+    elif -0.4 < x < -0.1 and l < 0:
+        l += two_pi
+    return l * 0.2421819697577577
+
+
+def lissajous31(phase):
+    x = phase - floor(phase + 0.5)
+    if x == -0.5:
+        return 0.0
+    l = atan2(sin(two_pi * phase), cos(six_pi * phase))
+    return l * two_per_pi - 4 * x
+
+
+def lissajous35(phase):
+    x = phase - floor(phase + 0.5)
+    if x == -0.5:
+        return 0.0
+    l = atan2(sin(ten_pi * phase), cos(six_pi * phase))
+    if 0 < x < 0.25 and l < 0:
+        l += two_pi
+    elif -0.25 < x < 0 and l > 0:
+        l -= two_pi
+    return l * i_pi - 2 * x
+
+
+def lissajous41(phase):
+    return atan2(sin(two_pi * phase), cos(eight_pi * phase)) * 0.39328116619210346
+
+
+def lissajous43(phase):
+    x = phase - floor(phase + 0.5)
+    l = atan2(sin(six_pi * phase), cos(four_pi * phase))
+    if 0.1 < x < 0.4 and l < 0:
+        l += two_pi
+    elif -0.4 < x < -0.1 and l > 0:
+        l -= two_pi
+    return l * i_seven_fourths_pi
 
 
 def rect(phase, duty=0.5):
@@ -305,11 +425,12 @@ def pcycloid(phase, sharpness=1):
         return sin(two_pi * phase)
     else:
         x = (phase - floor(phase)) * two_pi
-        return (x - precycloid(x, sharpness)) / sharpness
+        s = clip(sharpness, -1, 1)
+        return (x - precycloid(x, s)) / s
 
 
 def cycloid(phase, sharpness=1):
-    return cos(precycloid(two_pi * phase, sharpness))
+    return cos(precycloid(two_pi * phase, clip(sharpness, -1, 1)))
 
 
 def softtriangle(phase, sharpness):
@@ -319,6 +440,36 @@ def softtriangle(phase, sharpness):
 
 
 pi_squared = pi * pi
+two_pi_squared = 2 * pi_squared
+half_pi_squared = 0.5 * pi_squared
+
+
+def sineh(phase, sharpness):
+    if sharpness < epsilon:
+        return sin(two_pi * phase)
+    elif sharpness < 0.99:
+        a = sharpness / (1 - sharpness)
+        return sinh(a * sin(two_pi * phase)) / sinh(a)
+    elif sharpness < 1:
+        x = phase - floor(phase)
+        a = -two_pi_squared * sharpness / (1 - sharpness)
+        return exp(a * (x - 0.25) * (x - 0.25)) - exp(a * (x - 0.75) * (x - 0.75))
+    else:
+        return 0.0
+
+
+def cosineh(phase, sharpness):
+    if sharpness < epsilon:
+        return 0.5 + 0.5 * cos(two_pi * phase)
+    elif sharpness < 0.99:
+        a = sharpness / (1 - sharpness)
+        return (cosh(a * cos(pi * phase)) - 1) / (cosh(a) - 1)
+    elif sharpness < 1:
+        x = phase - floor(phase + 0.5)
+        a = -half_pi_squared * sharpness / (1 - sharpness)
+        return exp(a * x * x)
+    else:
+        return 0.0
 
 
 def theta(phase, sharpness):
@@ -353,6 +504,22 @@ def theta_rect(phase, sharpness):
         return sum(exp(a * (x - n) * (x - n)) for n in range(-2 , 3)) / (1 + 2 * (exp(a) + exp(4 * a)))
     else:
         return 0.0
+
+
+def theta_integral(phase, sharpness):
+    """Peak-amplitude normalized integral of DC-blocked EllipticTheta(3, pi * phase, sharpness)"""
+    q = sharpness
+    if q < epsilon:
+        return sin(two_pi * phase)
+    elif q < 0.2:
+        coefs = [q ** (n * n) / n for n in range(1, 6)]
+        return sum(c * sin(two_pi * n * phase) for n, c in enumerate(coefs, 1)) / sum(coefs)
+    elif q < 1:
+        x = phase - floor(phase + 0.5)
+        a = pi * (-log(q)) ** -0.5
+        return (sum(erf(a * (x - n)) for n in range(-2 , 3)) - x - x) / ((1 - sqrt(1 - q)) * (1.2575842100262158 - 0.2575842100262158 * q))
+    else:
+        return -saw(phase + 0.5)
 
 
 def sine(phase):

@@ -196,6 +196,9 @@ C = ffi.verify(
 
     double precycloid_m1(double x, double a)
     {
+        if (x == 0.0){
+            return 0.0;
+        }
         int i;
         double old_t;
         double t = 1.8171205928321397 * pow(x, 0.3333333333333333) + 0.1 * x;
@@ -286,9 +289,7 @@ def malloc_copy(length, count):
 
 def precycloid(x, a=-1.0):
     """Returns t such that x = t + a * sin(t)"""
-    if x == 0.0:
-        return 0.0
-    elif x < 0 or x > two_pi:
+    if x < 0 or x > two_pi:
         return floor(x * i_two_pi) * two_pi + precycloid(x % two_pi, a)
     elif x > pi:
         return two_pi - precycloid(two_pi - x, a)

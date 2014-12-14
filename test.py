@@ -129,112 +129,46 @@ perc = Percussion(velocity=0.787401574803)
 #beat = 0.1
 
 
-
-
-#s = [sine(220 * t)*0.5 for t in time(2)]
-
-
-#s = reverb(s)
-
-
-def wf(phase, sharpness):
-    z = from_polar(sharpness, two_pi * phase)
-    return cmath.sin(z).imag
-    z1 = 1 - z
-    return (-clog(z1) + 0.3 * z ** 2 / z1 - 0.1 * z ** 7 / (1.1 - z) ** 2).imag
-
-#s = [wf(t * 100 - t * t + cub(t * 50 - t * t * 2) * (1 - exp(-t)), 0.6 + 0.3 * sine(t * t))  for t in time(5)]
-
-#s = [softtriangle(t * 100 - t * t + softsquare(t * 51 - 3 * t*t, 0.9 - t * 0.2) * (0.5 + 0.4 *sine(t)), 0.9) for t in time(3)]
-
-#s = [sine(s) for s in twozero(s, 1, 1, -2, 1)]
 if False:
-    windows = []
-    window = [cunit() * uniform(None, 0.4, 1) for i in range(100)]
-    for s in linspace(0, 1, 10):
-        norm = sum(i ** -(1.5 - s) for i in range(1, 100))
-        windows.append([b * i ** -(1.5 - s) / norm if i > 0 else 0.0 for i, b in enumerate(window)])
+    sharpness = xfader(center([
+        ((rsine(t - 0.1 - cub(t - 0.1) * 0.5, 0.8, 1 - exp(-t) * 0.1) for t in time_gen()), 2.0, 0.1),
+        (0.99, 2.0),
+        ((rsine(t - 0.1 - cub(t - 0.1) * 0.5, 0.5, 1 - exp(-t) * 0.05) for t in time_gen()), 2.0),
+        (0.99, 2.0),
+    ]))
 
-    wf = irfft_waveform2(windows)
+    modulation = linspace_t(0, 1, 8)
 
-    wfm = lambda p, s, m, t: wf(p + cub(2 * p + t) * m, s)
+    pitch = eased_step(center([
+        (A2, 2, 0.1), (A3, 1.5), (A2, 0.5), (As2, 2), (C3, 1.5), (As2, 0.5),
+    ], True))
 
-    beat = 0.1
+    frequency = [mtof(p) for p in pitch]
 
-    pitch = eased_step_gen([(E1, 0), (C1, 16 * beat, 8 * beat), (G1, 8 * beat, 4 * beat), (Ef1, 8 * beat, 1 * beat), (C1, 8 * beat, 1 * beat)])
-    p = integrate(map(mtof, pitch))
-    s = eased_step([(0, 0), (1, 8 * beat, 8 * beat), (0, 8 * beat, 8 * beat)] + [(0.3, 2 * beat, 2 * beat), (0.9, 2 * beat, 2 * beat)] * 16)
-    m = eased_step([(0, 0), (1, 8 * beat, 8 * beat), (0, 8 * beat, 8 * beat)] + [(1.0, 32 * beat, 32 * beat)])
+    channels = []
+    for sign in [-1, 1]:
+        ss = []
+        for phase in noisy_phases(frequency, 0.25, 0.5):
+            ss.append([softsaw(p + cub(2 * p + t * sign) * m, s) * 0.1 for t, p, s, m in timed(phase, sharpness, modulation)])
+        s = mix(ss)
+        channels.append(s)
 
-    #s = [wfm(p, s, m, t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
+    left, right = channels
 
-    left = [wfm(p, s, m, t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
-    right = [wfm(p, s, m, -t) * 0.2 for p, s, m, t in zip(p, s, m, time_gen())]
-
-#left = [wfm(t * 50 - t * t, 0.9 - exp(-t * 2) * 0.2, t * (t-2) * 2, t) for t in time(2)]
-#right = [wfm(t * 50 - t * t, 0.9 - exp(-t * 2) * 0.2, t * (t-2) * 2, -t) for t in time(2)]
-
-#from songs.intro import *
-
-#left = [wf(t * 50 - t*t+ cub(101 * t - t*t) * t * (t-2) * 2, 0.9 - exp(-t * 2) * 0.2) * 0.5 for t in time(2)]
-#right = [wf(t * 50 - t*t+ cub(99 * t - t*t) * t * (t-2) * 2, 0.9 - exp(-t * 2) * 0.2) * 0.5 for t in time(2)]
-
-
-if False:
-    beat = 0.1
-    p = [(kick, beat * 4, 0.7), (hard_snare, beat * 6), (kick, beat * 2), (hard_snare, beat * 4)] * 4
-
-    s = percussion_sequence_to_sound(p)
-
-
-#def noisy_sof
-# gain(mix(map(saw, phase) for phase in noisy_phases(frequency, spread, noise_spread, noise_speed, count)), 0.4 / sqrt(count))
-
-#s = mix(noisy_saw(constant_t(mtof(p), 1)) for p in [C4, E4, G4, C5])
-
-#T = time(3)
-#s = mix(mix([softsquare2(p, rsine(t, 5.0, 20.0), rcosine(t * 2, 0.5, 0.7)) * 0.03 for t, p in zip(T, phase)] for phase in noisy_phases_gen(mtof(pitch))) for pitch in [C4, E4, G4, C5])
-
-#s = [twine(t * 220) * 0.5 for t in time(1)]
-
-
-def arc(phase):
-    x = phase - floor(phase + 0.5)
-    return cos(2 * asin(x + x))
+    stereo_play(left, right)
+    stereo_save(left, right, "temp.wav")
 
 
 
-#print (precycloid(0))
-s = [circleb(t * 220, t) * 0.5 for t in time(1)]
-
-#s = [saw(t * 220) * 0.5 for t in time(1)] + s + [par(t * 220) * 0.5 for t in time(1)]
-
-#s = differentiate(s)
-
-#s = gain(s, 0.2)
-
-#s = [triangle(qua(t * 40) * theta_rect(t, 0.7) + qua(t * 40 * 5) * theta_rect(t + 0.3, 0.7) + cub(t * 40 * 7) * theta_rect(t + 0.6, 0.9) + t * 40, 0.5 + 0.1 * t) * 0.5 for t in time(5)]
-
-#s = differentiate(s)
 
 
-#note.frequency = mtof(A3)
-#print(note.frequency)
-#s = flute(note)
+
+s = [lissajous35(110 * t) * 0.5 for t in time(1)]
+
+print(max(s),min(s))
 
 s = dither(s)
 
-#play(s)
+play(s)
 
 save(s, "temp.wav")
-
-
-
-#print (stereo_mix([([0,0], [1,2]), ([3, 4], [5, 6])]))
-
-#import frostsynth.songs.intro
-#left = timeslice(comb_t(s, 2 * beat - 0.02, 0.51), 128 * beat)
-#right = timeslice(comb_t(s, 2 * beat + 0.02, 0.5), 128 * beat)
-
-#stereo_play(left, right)
-#stereo_save(left, right, "temp.wav")

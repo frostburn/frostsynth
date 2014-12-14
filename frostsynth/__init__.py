@@ -114,6 +114,10 @@ def time_gen(t0=0.0, srate=None):
     return (t0 + i * dt for i in count())
 
 
+def timed(*iterables, t0=0.0, srate=None):
+    return zip(*((time_gen(t0, srate),) + iterables))
+
+
 def time_dt_gen(dt, t0=0.0):
     return (t0 + i * dt for i in count())
 

@@ -71,6 +71,62 @@ def eased_step(track, t=None, srate=None):
     return list(eased_step_gen(track, t, srate))
 
 
+def xfader_gen(track, t=None, srate=None):
+    if t is None:
+        t = time_gen(srate=srate)
+    else:
+        t = iter(t)
+    t0 = next(t)
+    t1 = t0
+    old_source = None
+    duration = 1
+    ease_duration = 0
+    for tple in track:
+        source = to_iterable(tple[0])
+        if len(tple) > 1:
+            duration = tple[1]
+            if len(tple) > 2:
+                ease_duration = min(tple[2], duration)
+        if old_source is None:
+            source, old_source = tee(source)
+        while t0 + duration > t1:
+            local_t = t1 - t0
+            if local_t < ease_duration:
+                mu = local_t / ease_duration
+                old_value = next(old_source)
+                yield old_value + mu * (next(source) - old_value)
+            else:
+                yield next(source)
+            t1 = next(t)
+        t0 = t1
+        old_source = source
+
+
+def xfader(track, t=None, srate=None):
+    return list(xfader_gen(track, t, srate))
+
+
+def center(track, naked=False):
+    prev = None
+    duration = 1
+    ease_duration = 0
+    for tple in track:
+        if not naked or hasattr(tple,'__getitem__'):
+            value = tple[0]
+            if len(tple) > 1:
+                duration = tple[1]
+                if len(tple) > 2:
+                    ease_duration = min(tple[2], duration)
+        else:
+            value = tple
+        if prev is not None:
+            yield (prev[0], prev[1] - 0.5 * ease_duration, prev[2])
+            prev = (value, duration + 0.5 * ease_duration, ease_duration)
+        else:
+            prev = (value, duration, ease_duration)
+    yield prev
+
+
 def mtof(p):
     """Converts midi pitch to frequency."""
     return 440.0 * 2 ** ((p - 69) / 12.0)
