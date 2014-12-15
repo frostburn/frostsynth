@@ -178,6 +178,7 @@ two_per_pi = 2 / pi
 i_three_fourths_pi = 4 / (3 * pi)
 i_five_fourths_pi = 4 / (5 * pi)
 i_seven_fourths_pi = 4 / (7 * pi)
+three_pi = 3 * pi
 four_pi = 4 * pi
 six_pi = 6 * pi
 eight_pi = 8 * pi
@@ -185,14 +186,25 @@ ten_pi = 10 * pi
 fourteen_pi = 14 * pi
 
 
-def lissajous13(phase):
+def lissajous11(phase, sharpness):
+    if abs(sharpness) < epsilon:
+        return sin(two_pi * phase)
+    x = pi * (phase - floor(phase + 0.5))
+    s = clip(sharpness, epsilon - 1, 1 - epsilon)
+    a = 1 + s
+    b = 1 - s
+    return (atan2(a * a * sin(x), b * b * cos(x)) - x) / (2 * atan2(b, a) - 0.5 * pi)
+
+
+def lissajous13(phase, sharpness=0.0):
     x = phase - floor(phase + 0.5)
-    l = atan2(sin(six_pi * phase), cos(two_pi * phase))
+    s = clip(sharpness, -1, 1)
+    l = atan2((1 + s) * sin(three_pi * x), (1 - s) * cos(pi * x))
     if x > 0.25 and l > 0:
         l -= two_pi
     elif x < -0.25 and l < 0:
         l += two_pi
-    return l * two_per_pi + 4 * x
+    return l * two_per_pi + 2 * x
 
 
 def lissajous15(phase):

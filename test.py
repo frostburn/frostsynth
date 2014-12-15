@@ -163,9 +163,9 @@ if False:
 
 
 
-s = [lissajous35(110 * t) * 0.5 for t in time(1)]
+s = [lissajous11(t * 220, 1 - t) * 0.5 for t in time(2)]
 
-print(max(s),min(s))
+#print(max(s),min(s))
 
 s = dither(s)
 
