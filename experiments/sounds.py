@@ -241,3 +241,14 @@ wf = irfft_waveform2(windows)
 
 left = [wf(t * 50 - t*t+ cub(101 * t - t*t) * t * (t-2) * 2, 0.9 - exp(-t * 2) * 0.2) * 0.5 for t in time(2)]
 right = [wf(t * 50 - t*t+ cub(99 * t - t*t) * t * (t-2) * 2, 0.9 - exp(-t * 2) * 0.2) * 0.5 for t in time(2)]
+
+
+# Harmonic dance
+s = [cis(220 * t) for t in time(3)]
+
+def p(z, *ss):
+    for i, s in enumerate(ss, 2):
+        z = z * (1 - abs(s)) + s * z ** i
+    return z
+
+s = [p(z, rsine(2 * t, 0, 1), rsine(3 * t, 0 , 1), rsine(4 * t, 0 , 1), rsine(5 * t, 0, 1)).imag * 0.5 for t, z in timed(s)]

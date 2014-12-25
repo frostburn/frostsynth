@@ -20,9 +20,10 @@ from frostsynth.resample import *
 from frostsynth.polytable import *
 from frostsynth.blit import *
 from frostsynth.quantize import *
+from frostsynth.numeric import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
-from frostsynth.ffi import malloc_copy, precycloid
+from frostsynth.ffi import malloc_copy, precycloid, j0, j1, jn, y0, y1, yn
 
 srate = get_srate()
 
@@ -159,16 +160,55 @@ if False:
     stereo_save(left, right, "temp.wav")
 
 
+#s = [lissajous13(220 * t, 1 - t, 0) * 0.5 for t in time(2)]
 
 
 
 
-s = [lissajous11(t * 220, 1 - t) * 0.5 for t in time(2)]
+#fm(0.1, 1)
 
-#print(max(s),min(s))
+#s = [fm(220 * t, t) * 0.5 for t in time(5)]
 
-s = dither(s)
+#f = StableFundamental(lambda t, x: cub(t + x * cub(t)), 1)
 
-play(s)
+#s = [tanh(cub(220 * t -2 * exp(-t * 5) * cub(220 * t)) * exp(-t) * 2) * 0.5 for t in time(3)]
 
-save(s, "temp.wav")
+def formant(phase, ratio, width):
+    if width < epsilon:
+        width = epsilon
+    if width < 10:
+        x = two_pi * phase
+        q = exp(-pi_squared / width)
+        floor_ratio = int(floor(ratio))
+        ratio -= floor_ratio
+        coefs = [q ** (n - ratio) ** 2 for n in range(-5, 6)]
+        norm = sum(q ** n ** 2 for n in range(-5, 6))
+        return sum(cos(x * n) * c for n, c in enumerate(coefs, floor_ratio - 5)) / norm
+    else:
+        x = phase - floor(phase + 0.5)
+        ratio *= two_pi
+        z = from_polar(1, ratio * (x + 5))
+        m = from_polar(1, -ratio)
+        s = exp(-width * (x + 5) ** 2) * z.real
+        norm = exp(-width)
+        temp = norm ** 4
+        norm += temp + temp ** 4 + exp(-width * 9) + exp(-width * 25)
+        norm = 1 + norm + norm
+        for n in range(-4, 6):
+            z *= m
+            s += exp(-width * (x - n) ** 2) * z.real
+        return s / norm
+
+
+s = [formant(220 * t, 4.5, t * 4) for t in time(5)]
+
+#print(j0(0))
+
+if True:
+    print(max(s),min(s))
+
+    s = dither(s)
+
+    play(s)
+
+    save(s, "temp.wav")

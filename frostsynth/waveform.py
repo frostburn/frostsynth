@@ -1,5 +1,5 @@
 from math import *
-from cmath import exp as cexp
+from cmath import rect as from_polar
 
 from frostsynth import epsilon, clip, two_pi, two_pi_j, i_pi
 from frostsynth.ffi import precycloid
@@ -174,115 +174,139 @@ def tri(phase):
     return tanh(tan(two_pi * abs(x) - half_pi))
 
 
+one_per_pi = 1 / pi
 two_per_pi = 2 / pi
-i_three_fourths_pi = 4 / (3 * pi)
-i_five_fourths_pi = 4 / (5 * pi)
-i_seven_fourths_pi = 4 / (7 * pi)
+four_thirds_per_pi = 4 / (3 * pi)
+four_fifths_per_pi = 4 / (5 * pi)
+four_sevenths_per_pi = 4 / (7 * pi)
+four_ninths_per_pi = 4 / (9 * pi)
+four_elevenths_per_pi = 4 / (11 * pi)
+pi_per_twelve = pi / 12
+pi_per_ten = pi / 10
+pi_per_eight = pi / 8
+pi_per_six = pi / 6
+half_pi = 0.5 * pi
 three_pi = 3 * pi
 four_pi = 4 * pi
+five_pi = 5 * pi
 six_pi = 6 * pi
 eight_pi = 8 * pi
 ten_pi = 10 * pi
-fourteen_pi = 14 * pi
+twelve_pi = 12 * pi
 
 
-def lissajous11(phase, sharpness):
+def lissajous11(phase, sharpness=0):
     if abs(sharpness) < epsilon:
         return sin(two_pi * phase)
     x = pi * (phase - floor(phase + 0.5))
     s = clip(sharpness, epsilon - 1, 1 - epsilon)
     a = 1 + s
     b = 1 - s
-    return (atan2(a * a * sin(x), b * b * cos(x)) - x) / (2 * atan2(b, a) - 0.5 * pi)
+    return (atan2(a * a * sin(x), b * b * cos(x)) - x) / (2 * atan2(b, a) - half_pi)
 
 
-def lissajous13(phase, sharpness=0.0):
+def lissajous12(phase, sharpness=0, bias=0):
+    s = clip(sharpness, -1, 1)
+    b = half_pi * clip(bias, epsilon - 1, 1 - epsilon)
+    return atan2((1 + s) * sin(two_pi * phase), (1 - s) * cos(four_pi * phase + b)) * four_thirds_per_pi
+
+
+def lissajous13(phase, sharpness=0, bias=0):
     x = phase - floor(phase + 0.5)
     s = clip(sharpness, -1, 1)
-    l = atan2((1 + s) * sin(three_pi * x), (1 - s) * cos(pi * x))
-    if x > 0.25 and l > 0:
-        l -= two_pi
-    elif x < -0.25 and l < 0:
-        l += two_pi
-    return l * two_per_pi + 2 * x
+    b = pi_per_six * clip(bias, epsilon - 1, 1 - epsilon)
+    return atan2((1 + s) * sin(three_pi * x), (1 - s) * cos(pi * x + b)) * two_per_pi + x + x
 
 
-def lissajous15(phase):
+def lissajous14(phase, sharpness=0, bias=0):
+    s = clip(sharpness, -1, 1)
+    b = pi_per_eight * clip(bias, epsilon - 1, 1 - epsilon)
+    return atan2((1 - s) * cos(two_pi * phase + b), (1 + s) * cos(eight_pi * phase)) * 0.39328116619206743
+
+
+def lissajous15(phase, sharpness=0, bias=0):
     x = phase - floor(phase + 0.5)
-    l = atan2(sin(ten_pi * phase), cos(two_pi * phase))
-    if x > 0.25 and l < 0:
-        l += two_pi
-    elif x < -0.25 and l > 0:
-        l -= two_pi
-    return (l - two_pi * x) * 0.4754858331152377
+    s = clip(sharpness, -1, 1)
+    b = pi_per_ten * clip(bias, epsilon - 1, 1 - epsilon)
+    return atan2((1 + s) * sin(five_pi * x), (1 - s) * cos(pi * x + b)) * 0.4754858297894094 - 1.4937827897524554 * x
 
 
-def lissajous21(phase):
-    return atan2(sin(two_pi * phase), cos(four_pi * phase)) * i_three_fourths_pi
+def lissajous16(phase, sharpness=0, bias=0):
+    s = clip(sharpness, -1, 1)
+    b = half_pi * clip(bias, epsilon - 1, 1 - epsilon)
+    return atan2((1 - s) * sin(two_pi * phase), (1 + s) * cos(twelve_pi * phase + b)) * 0.3708887239244341
 
 
-def lissajous23(phase):
+def lissajous23(phase, sharpness=0, bias=0):
     x = phase - floor(phase + 0.5)
-    l = atan2(sin(six_pi * phase), cos(four_pi * phase))
+    s = clip(sharpness, -1, 1)
+    b = pi_per_six * clip(bias, epsilon - 1, 1 - epsilon)
+    l = atan2((1 + s) * sin(six_pi * x), (1 - s) * cos(four_pi * x + b))
     if x > 0 and l < 0:
         l += two_pi
     elif x < 0 and l > 0:
         l -= two_pi
-    return l * i_five_fourths_pi
+    return l * four_fifths_per_pi
 
 
-def lissajous25(phase):
+def lissajous25(phase, sharpness=0, bias=0):
     x = phase - floor(phase + 0.5)
-    l = atan2(sin(ten_pi * phase), cos(four_pi * phase))
-    if 0.15 < x < 0.35 and l > 0:
-        l -= two_pi
-    elif -0.35 < x < -0.15 and l < 0:
+    s = clip(sharpness, -1, 1)
+    b = pi_per_ten * clip(bias, epsilon - 1, 1 - epsilon)
+    l = atan2((-1 - s) * sin(ten_pi * x), (1 - s) * cos(four_pi * x + b))
+    if 0.15 < x < 0.35 and l < 0:
         l += two_pi
-    return l * i_five_fourths_pi
-
-
-def lissajous27(phase):
-    x = phase - floor(phase + 0.5)
-    l = atan2(sin(fourteen_pi * phase), cos(four_pi * phase))
-    if 0.1 < x < 0.4 and l > 0:
+    elif -0.35 < x < -0.15 and l > 0:
         l -= two_pi
-    elif -0.4 < x < -0.1 and l < 0:
-        l += two_pi
-    return l * 0.2421819697577577
+    return l * four_fifths_per_pi
 
 
-def lissajous31(phase):
+def lissajous34(phase, sharpness=0, bias=0):
     x = phase - floor(phase + 0.5)
-    if x == -0.5:
-        return 0.0
-    l = atan2(sin(two_pi * phase), cos(six_pi * phase))
-    return l * two_per_pi - 4 * x
-
-
-def lissajous35(phase):
-    x = phase - floor(phase + 0.5)
-    if x == -0.5:
-        return 0.0
-    l = atan2(sin(ten_pi * phase), cos(six_pi * phase))
-    if 0 < x < 0.25 and l < 0:
-        l += two_pi
-    elif -0.25 < x < 0 and l > 0:
-        l -= two_pi
-    return l * i_pi - 2 * x
-
-
-def lissajous41(phase):
-    return atan2(sin(two_pi * phase), cos(eight_pi * phase)) * 0.39328116619210346
-
-
-def lissajous43(phase):
-    x = phase - floor(phase + 0.5)
-    l = atan2(sin(six_pi * phase), cos(four_pi * phase))
+    s = clip(sharpness, -1, 1)
+    b = pi_per_six * clip(bias, epsilon - 1, 1 - epsilon)
+    l = atan2((1 - s) * sin(six_pi * x), (1 + s) * cos(eight_pi * x + b))
     if 0.1 < x < 0.4 and l < 0:
         l += two_pi
     elif -0.4 < x < -0.1 and l > 0:
         l -= two_pi
-    return l * i_seven_fourths_pi
+    return l * four_sevenths_per_pi
+
+
+def lissajous35(phase, sharpness=0, bias=0):
+    x = phase - floor(phase + 0.5)
+    s = clip(sharpness, -1, 1)
+    b = pi_per_ten * clip(bias, epsilon - 1, 1 - epsilon)
+    l = atan2((1 + s) * sin(five_pi * x), (1 - s) * cos(three_pi * x + b))
+    if x > 0 and l < 0:
+        l += two_pi
+    elif x < 0 and l > 0:
+        l -= two_pi
+    return l * one_per_pi - x
+
+
+def lissajous45(phase, sharpness=0, bias=0):
+    x = phase - floor(phase + 0.5)
+    s = clip(sharpness, -1, 1)
+    b = pi_per_ten * clip(bias, epsilon - 1, 1 - epsilon)
+    l = atan2((1 + s) * sin(ten_pi * x), (1 - s) * cos(eight_pi * x + b))
+    if (x > 0 and l < 0) or (0.15 < x < 0.35):
+        l += two_pi
+    elif (x < 0 and l > 0) or (-0.35 < x < -0.15):
+        l -= two_pi
+    return l * four_ninths_per_pi
+
+
+def lissajous56(phase, sharpness=0, bias=0):
+    x = phase - floor(phase + 0.5)
+    s = clip(sharpness, -1, 1)
+    b = pi_per_ten * clip(bias, epsilon - 1, 1 - epsilon)
+    l = atan2((1 - s) * sin(ten_pi * x), (1 + s) * cos(twelve_pi * x + b))
+    if (x > 0 and l < 0) or (0.15 < x < 0.35):
+        l += two_pi
+    elif (x < 0 and l > 0) or (-0.35 < x < -0.15):
+        l -= two_pi
+    return l * four_elevenths_per_pi
 
 
 def rect(phase, duty=0.5):
@@ -551,7 +575,7 @@ def rcosine(phase, vmin=0.0, vmax=1.0):
 
 
 def cis(phase):
-    return cexp(two_pi_j * phase)
+    return from_polar(1, two_pi * phase)
 
 
 def duplex(func, phase, bias=0.5):

@@ -256,6 +256,19 @@ class Infinitee(object):
         return t
 
 
+class RandomAccessIterator(object):
+    def __init__(self, iterator):
+        self._iterator = iter(iterator)
+        self._values = []
+
+    def __getitem__(self, key):
+        if key < 0:
+            raise ValueError("Negative indexing not supported.")
+        while len(self._values) <= key:
+            self._values.append(next(self._iterator))
+        return self._values[key]
+
+
 def interlace(*iterables):
     iterables = [iter(it) for it in iterables]
     while True:

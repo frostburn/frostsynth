@@ -20,6 +20,13 @@ ffi.cdef(
     void malloc_copy(double result[], size_t length, size_t count);
     double precycloid_m1(double x, double a);
     double precycloid(double x, double a);
+
+    double j0(double x);
+    double j1(double x);
+    double jn(int n, double x);
+    double y0(double x);
+    double y1(double x);
+    double yn(int n, double x);
     """
 )
 
@@ -301,3 +308,11 @@ def precycloid(x, a=-1.0):
         return pi - C.precycloid(pi - x, -a)
     else:
         return C.precycloid(x, a)
+
+
+j0 = C.j0;
+j1 = C.j1;
+jn = C.jn;
+y0 = C.y0;
+y1 = C.y1;
+yn = C.yn;
