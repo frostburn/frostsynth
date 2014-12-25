@@ -173,7 +173,7 @@ if False:
 
 #s = [tanh(cub(220 * t -2 * exp(-t * 5) * cub(220 * t)) * exp(-t) * 2) * 0.5 for t in time(3)]
 
-def formant(phase, ratio, width):
+def theta_formant(phase, ratio, width):
     if width < epsilon:
         width = epsilon
     if width < 10:
@@ -181,26 +181,45 @@ def formant(phase, ratio, width):
         q = exp(-pi_squared / width)
         floor_ratio = int(floor(ratio))
         ratio -= floor_ratio
-        coefs = [q ** (n - ratio) ** 2 for n in range(-5, 6)]
-        norm = sum(q ** n ** 2 for n in range(-5, 6))
-        return sum(cos(x * n) * c for n, c in enumerate(coefs, floor_ratio - 5)) / norm
+        norm = 1 + q + q + 2 * sum(q ** n ** 2 for n in range(2, 5))
+        z = from_polar(1, x * (floor_ratio - 4))
+        m = from_polar(1, x)
+        s = z.real * q ** (4 + ratio) ** 2
+        for n in range(-3, 5):
+            z *= m
+            s += z.real * q ** (n - ratio) ** 2
+        return s / norm
     else:
         x = phase - floor(phase + 0.5)
         ratio *= two_pi
-        z = from_polar(1, ratio * (x + 5))
-        m = from_polar(1, -ratio)
-        s = exp(-width * (x + 5) ** 2) * z.real
-        norm = exp(-width)
-        temp = norm ** 4
-        norm += temp + temp ** 4 + exp(-width * 9) + exp(-width * 25)
-        norm = 1 + norm + norm
-        for n in range(-4, 6):
-            z *= m
-            s += exp(-width * (x - n) ** 2) * z.real
-        return s / norm
+        z = from_polar(1, ratio * (x + 2))
+        m = cexp(2 * width * x - 1j * ratio)
+        m2 = exp(-width)
+        m4 = m2 ** 4
+
+        z0 = z.real
+        z *= m
+        z1 = z.real
+        z *= m
+        s = z.real
+        z *= m
+        s += (z.real + z1) * m2
+        z *= m
+        s += (z.real + z0) * m4
+
+        return exp(-width * x * (x + 4)) * s / (1 + 2 * (m2 + m4))
 
 
-s = [formant(220 * t, 4.5, t * 4) for t in time(5)]
+def formant_gen(frequency, formant_frequency, width):
+    f, temp = tee(to_iterable(frequency))
+    i_f0, i_f1 = tee(1 / f for f in temp)
+    r = (ff * i_f for ff, i_f in zip(to_iterable(formant_frequency), i_f0))
+    w = (2 * w * i_f for w, i_f in zip(to_iterable(width), i_f1))
+    return (theta_formant(p, r, w) for p, r, w in zip(integrate_gen(f), r, w))
+
+f = [100 + 40 * t for t in time(5)]
+
+s = list(formant_gen(f, 1500, 1000))
 
 #print(j0(0))
 
