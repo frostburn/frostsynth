@@ -165,6 +165,7 @@ if False:
 
 
 
+
 #fm(0.1, 1)
 
 #s = [fm(220 * t, t) * 0.5 for t in time(5)]
@@ -173,55 +174,38 @@ if False:
 
 #s = [tanh(cub(220 * t -2 * exp(-t * 5) * cub(220 * t)) * exp(-t) * 2) * 0.5 for t in time(3)]
 
-def theta_formant(phase, ratio, width):
-    if width < epsilon:
-        width = epsilon
-    if width < 10:
-        x = two_pi * phase
-        q = exp(-pi_squared / width)
-        floor_ratio = int(floor(ratio))
-        ratio -= floor_ratio
-        norm = 1 + q + q + 2 * sum(q ** n ** 2 for n in range(2, 5))
-        z = from_polar(1, x * (floor_ratio - 4))
-        m = from_polar(1, x)
-        s = z.real * q ** (4 + ratio) ** 2
-        for n in range(-3, 5):
-            z *= m
-            s += z.real * q ** (n - ratio) ** 2
-        return s / norm
-    else:
-        x = phase - floor(phase + 0.5)
-        ratio *= two_pi
-        z = from_polar(1, ratio * (x + 2))
-        m = cexp(2 * width * x - 1j * ratio)
-        m2 = exp(-width)
-        m4 = m2 ** 4
 
-        z0 = z.real
-        z *= m
-        z1 = z.real
-        z *= m
-        s = z.real
-        z *= m
-        s += (z.real + z1) * m2
-        z *= m
-        s += (z.real + z0) * m4
+#f = [100 + 40 * t for t in time(5)]
 
-        return exp(-width * x * (x + 4)) * s / (1 + 2 * (m2 + m4))
+#s = list(formant_gen(f, 1500, 1000))
+
+def _theta(t, q):
+    coefs = [q ** n ** 2 for n in range(1, 100)]
+    return (1 + 2 * sum(c * cos(two_pi * t * n) for n, c in enumerate(coefs, 1))) / (1 + 2 * sum(coefs))
 
 
-def formant_gen(frequency, formant_frequency, width):
-    f, temp = tee(to_iterable(frequency))
-    i_f0, i_f1 = tee(1 / f for f in temp)
-    r = (ff * i_f for ff, i_f in zip(to_iterable(formant_frequency), i_f0))
-    w = (2 * w * i_f for w, i_f in zip(to_iterable(width), i_f1))
-    return (theta_formant(p, r, w) for p, r, w in zip(integrate_gen(f), r, w))
+def softarc(phase, sharpness):
+    if sharpness < epsilon:
+        return cos(two_pi * phase)
+    return (hypot((1 + sharpness) * cos(pi * phase), (1 - sharpness) * sin(pi * phase)) - 1) / sharpness
 
-f = [100 + 40 * t for t in time(5)]
+#s = [formant(220 * t, 4, t * 2) * 0.5 for t in time(5)]
 
-s = list(formant_gen(f, 1500, 1000))
+#s = [theta_formant(220 * t, t, 10) * 0.5 for t in time(10)]
+
+#f = [150 - sqrt(2-t) * 50 for t in time(2)]
+
+#s0 = list(formant_gen(f, linspace_t(600, 240, 2), linspace_t(30000, 50000, 2)))
+#s1 = list(formant_gen(f, linspace_t(940, 2400, 2), 5000))
+#s = mix([s0, s1], [0.5, 0.1])
 
 #print(j0(0))
+
+#s = [(sine(220 * t + sine(110 * t) * exp(-t * 5)) - sine(220 * t)) * 0.25 for t in time(2)]
+#s += [(sine(220 * t + formant(110 * t, 2, 5) * exp(-t *5)) - sine(220 * t)) * 0.25 for t in time(2)]
+
+
+s = [softarc(220 * t, t * 0.5) for t in time(2)]
 
 if True:
     print(max(s),min(s))

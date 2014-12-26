@@ -1,5 +1,5 @@
 from math import *
-from cmath import rect as from_polar
+from cmath import rect as from_polar, exp as cexp
 
 from frostsynth import epsilon, clip, two_pi, two_pi_j, i_pi
 from frostsynth.ffi import precycloid
@@ -469,6 +469,12 @@ def cycloid(phase, sharpness=1):
     return cos(precycloid(two_pi * phase, clip(sharpness, -1, 1)))
 
 
+def softarc(phase, sharpness):
+    if sharpness < epsilon:
+        return cos(two_pi * phase)
+    return (hypot((1 + sharpness) * cos(pi * phase), (1 - sharpness) * sin(pi * phase)) - 1) / sharpness
+
+
 def softtriangle(phase, sharpness):
     x = two_pi * phase
     s = clip(sharpness, epsilon, 1 - epsilon)
@@ -508,38 +514,102 @@ def cosineh(phase, sharpness):
         return 0.0
 
 
+def formant(phase, ratio, width):
+    """Formant waveform with energy concentrated on the harmonic specified by ratio."""
+    ratio = floor(ratio)
+    if width < 700:
+        x = pi * phase
+        return cosh(cos(x) * width) / cosh(width) * cos(2 * x * ratio)
+    else:
+        x = phase - floor(phase + 0.5)
+        return exp(-half_pi_squared * width * x * x) * cos(two_pi * x * ratio)
+
+
 def theta(phase, sharpness):
     """DC-blocked peak-amplitude normalized EllipticTheta(3, pi * phase, sharpness)"""
     q = sharpness
     if q < epsilon:
         return cos(two_pi * phase)
-    elif q < 0.2:
-        coefs = [q ** (n * n) for n in range(1, 6)]
-        return sum(c * cos(two_pi * n * phase) for n, c in enumerate(coefs, 1)) / sum(coefs)
-    elif q < 1:
-        x = phase - floor(phase + 0.5)
+    if q < 0.2:
+        q2 = q * q
+        q4 = q2 * q2
+        q8 = q4 * q4
+        q9 = q8 * q
+        q16 = q8 * q8
+        q25 = q16 * q9
+
+        c = cos(two_pi * phase)
+        c2 = 2 * c * c - 1
+        c3 = 2 * c * c2 - c
+        c4 = 2 * c * c3 - c2
+        c5 = 2 * c * c4 - c3
+
+        return (q * c + q4 * c2 + q9 * c3 + q16 * c4 + q25 * c5) / (q + q4 + q9 + q16 + q25)
+    elif q < 0.9:
+        t = phase - floor(phase + 0.5)
         i_log_q = 1 / log(q)
         a = pi_squared * i_log_q
-        b = 0.5 * sqrt(-pi * i_log_q)
-        return (sum(exp(a * (x - n) * (x - n)) for n in range(-2 , 3)) * b - 0.5) / ((1 + 2 * (exp(a) + exp(4 * a))) * b - 0.5)
+        m = exp(-a * 2 * t)
+        b = exp(a)
+        b4 = b ** 4
+
+        z2 = m * m
+        z3 = m * z2
+        z4 = m * z3
+        s = z2 + b * (m + z3) + b4 * (1 + z4)
+
+        c = 0.5 * sqrt(-pi * i_log_q)
+
+        return (exp(a * t * (t + 4)) * s * c - 0.5) / ((1 + 2 * (b + b4)) * c - 0.5)
+    elif q < 1:
+        t = phase - floor(phase + 0.5)
+        i_log_q = 1 / log(q)
+        a = pi_squared * i_log_q
+        c = 0.5 * sqrt(-pi * i_log_q)
+        return (exp(a * t * t) * c - 0.5) / (c - 0.5)
     else:
-        return 0.0
+        return 0
 
 
 def theta_rect(phase, sharpness):
     """Peak-amplitude normalized EllipticTheta(3, pi * phase, sharpness)"""
     q = sharpness
     if q < epsilon:
-        return 0.5 * 0.5 * cos(two_pi * phase)
-    elif q < 0.2:
-        coefs = [q ** (n * n) for n in range(1, 6)]
-        return (1 + sum(c * cos(two_pi * n * phase) for n, c in enumerate(coefs, 1))) / (1 + sum(coefs))
-    elif q < 1:
-        x = phase - floor(phase + 0.5)
+        q = epsilon
+    if q < 0.2:
+        q2 = q * q
+        q4 = q2 * q2
+        q8 = q4 * q4
+        q9 = q8 * q
+        q16 = q8 * q8
+        q25 = q16 * q9
+
+        c = cos(two_pi * phase)
+        c2 = 2 * c * c - 1
+        c3 = 2 * c * c2 - c
+        c4 = 2 * c * c3 - c2
+        c5 = 2 * c * c4 - c3
+
+        return (1 + 2 * (q * c + q4 * c2 + q9 * c3 + q16 * c4 + q25 * c5)) / (1 + 2 * (q + q4 + q9 + q16 + q25))
+    elif q < 0.9:
+        t = phase - floor(phase + 0.5)
         a = pi_squared / log(q)
-        return sum(exp(a * (x - n) * (x - n)) for n in range(-2 , 3)) / (1 + 2 * (exp(a) + exp(4 * a)))
+        m = exp(-a * 2 * t)
+        b = exp(a)
+        b4 = b ** 4
+
+        z2 = m * m
+        z3 = m * z2
+        z4 = m * z3
+        s = z2 + b * (m + z3) + b4 * (1 + z4)
+
+        return exp(a * t * (t + 4)) * s / (1 + 2 * (b + b4))
+    elif q < 1:
+        t = phase - floor(phase + 0.5)
+        a = pi_squared / log(q)
+        return exp(a * t * t)
     else:
-        return 0.0
+        return 0
 
 
 def theta_integral(phase, sharpness):
@@ -556,6 +626,54 @@ def theta_integral(phase, sharpness):
         return (sum(erf(a * (x - n)) for n in range(-2 , 3)) - x - x) / ((1 - sqrt(1 - q)) * (1.2575842100262158 - 0.2575842100262158 * q))
     else:
         return -saw(phase + 0.5)
+
+
+def theta_formant(phase, ratio, width):
+    """Formant waveform with energy concentrated on the fractional harmonic specified by ratio."""
+    if width < epsilon:
+        width = epsilon
+    if width < 7:
+        x = two_pi * phase
+        q = exp(-pi_squared / width)
+        q2 = q * q
+        q4 = q2 * q2
+        q8 = q4 * q4
+        q9 = q8 * q
+        q16 = q8 * q8
+        q25 = q16 * q9
+        norm = 1 + 2 * (q + q4 + q9 + q25)
+        floor_ratio = floor(ratio)
+        ratio -= floor_ratio
+        cn = cos(x * (floor_ratio - 5))
+        cn1 = cos(x * (floor_ratio - 4))
+        c = cos(x)
+        s = cn1 * q ** (4 + ratio) ** 2
+        for n in range(-3, 5):
+            cn1, cn = 2 * c * cn1 - cn, cn1
+            s += cn1 * q ** (n - ratio) ** 2
+        return s / norm
+    elif width < 100:
+        x = phase - floor(phase + 0.5)
+        ratio *= two_pi
+        z = from_polar(1, ratio * (x + 2))
+        m = cexp(2 * width * x - 1j * ratio)
+        b = exp(-width)
+        b4 = b ** 4
+
+        z0 = z.real
+        z *= m
+        z1 = z.real
+        z *= m
+        s = z.real
+        z *= m
+        s += (z.real + z1) * b
+        z *= m
+        s += (z.real + z0) * b4
+
+        return exp(-width * x * (x + 4)) * s / (1 + 2 * (b + b4))
+    else:
+        x = phase - floor(phase + 0.5)
+        return exp(-width * x * x) * cos(two_pi * x * ratio)
 
 
 def sine(phase):

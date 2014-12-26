@@ -252,3 +252,22 @@ def p(z, *ss):
     return z
 
 s = [p(z, rsine(2 * t, 0, 1), rsine(3 * t, 0 , 1), rsine(4 * t, 0 , 1), rsine(5 * t, 0, 1)).imag * 0.5 for t, z in timed(s)]
+
+
+# Sine formant. High ratio - low width.
+# High width - low ratio can be approximated with polynomials but high width - high ratio proves elusive.
+def formant(phase, ratio, width):
+    if width < epsilon:
+        width = epsilon
+    x = two_pi * phase
+    q = exp(-pi_squared / width)
+    norm = 1 + 2 * (q + q ** 4 + q ** 9 + q ** 25)
+    floor_ratio = max(floor(ratio), 4)
+    ratio -= floor_ratio
+    z = from_polar(1, x * (floor_ratio - 4))
+    m = from_polar(1, x)
+    s = z.imag * q ** (4 + ratio) ** 2
+    for n in range(-3, 5):
+        z *= m
+        s += z.imag * q ** (n - ratio) ** 2
+    return s / norm

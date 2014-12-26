@@ -38,3 +38,11 @@ def noisy_phases(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5, cou
 
 def noisy_saw(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5, count=6):
     return gain(mix(map(saw, phase) for phase in noisy_phases(frequency, spread, noise_spread, noise_speed, count)), 0.4 / sqrt(count))
+
+
+def formant_gen(frequency, formant_frequency, width):
+    f, temp = tee(to_iterable(frequency))
+    i_f0, i_f1 = tee(1 / f for f in temp)
+    r = (ff * i_f for ff, i_f in zip(to_iterable(formant_frequency), i_f0))
+    w = (2 * w * i_f for w, i_f in zip(to_iterable(width), i_f1))
+    return (theta_formant(p, r, w) for p, r, w in zip(integrate_gen(f), r, w))
