@@ -304,3 +304,6 @@ i_pi = 1 / math.pi
 
 
 i_two_pi = 1 / two_pi
+
+
+e = math.exp(1)

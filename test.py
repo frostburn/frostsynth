@@ -21,6 +21,7 @@ from frostsynth.polytable import *
 from frostsynth.blit import *
 from frostsynth.quantize import *
 from frostsynth.numeric import *
+from frostsynth.specfunc import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
 from frostsynth.ffi import malloc_copy, precycloid, j0, j1, jn, y0, y1, yn
@@ -184,11 +185,6 @@ def _theta(t, q):
     return (1 + 2 * sum(c * cos(two_pi * t * n) for n, c in enumerate(coefs, 1))) / (1 + 2 * sum(coefs))
 
 
-def softarc(phase, sharpness):
-    if sharpness < epsilon:
-        return cos(two_pi * phase)
-    return (hypot((1 + sharpness) * cos(pi * phase), (1 - sharpness) * sin(pi * phase)) - 1) / sharpness
-
 #s = [formant(220 * t, 4, t * 2) * 0.5 for t in time(5)]
 
 #s = [theta_formant(220 * t, t, 10) * 0.5 for t in time(10)]
@@ -205,7 +201,28 @@ def softarc(phase, sharpness):
 #s += [(sine(220 * t + formant(110 * t, 2, 5) * exp(-t *5)) - sine(220 * t)) * 0.25 for t in time(2)]
 
 
-s = [softarc(220 * t, t * 0.5) for t in time(2)]
+#s = [softarc(220 * t, t - 0.5) for t in time(2)]
+
+
+#s = [logistic(t * 55, t * 0.25, 5) for t in time(4)]
+
+
+#s = [sinfold(t * 55, 0.5 + sine(t * 3) * 0.1, t * 0.1, 4) * 0.5 for t in time(10)]
+
+if False:
+    def i(note):
+        return decax2_env([lissajous23(note.frequency * t, exp(-t*7)) for t in time(1.5)], 1, 0.02, 5)
+
+
+    s = note_tuples_to_sound(i, [
+        (C4, 0.2), E4, G4,
+    ])
+
+
+    s = gain(s, 0.2)
+
+print ([dawson(x) for x in linspace(-5, 5, 200)])
+
 
 if True:
     print(max(s),min(s))

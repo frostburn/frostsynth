@@ -277,7 +277,7 @@ def loop(track, times, offset):
     return result
 
 
-def percussion_sequence_to_sound(track, srate=None):
+def percussion_tuples_to_sound(track, srate=None):
     """
     Turns list of (instrument, duration, velocity) tuples into sound.
     """
@@ -302,3 +302,30 @@ def percussion_sequence_to_sound(track, srate=None):
 
 
 #TODO: percussion_sequence_to_sound_gen
+
+
+def note_tuples_to_sound(instrument, track, srate=None):
+    """
+    Turns list of (pitch, duration, note_on_velocity, note_off_velocity) tuples into sound.
+    """
+    srate = get_srate(srate)
+    duration = 1.0
+    note_on_velocity = 0.7
+    note_off_velocity = 0.5
+    t = 0.0
+    result = []
+    for tple in track:
+        if hasattr(tple,'__getitem__'):
+            pitch = tple[0]
+            if len(tple) > 1:
+                duration = tple[1]
+                if len(tple) > 2:
+                    note_on_velocity = tple[2]
+                    if len(tple) > 3:
+                        note_off_velocity = tple[3]
+        else:
+            pitch = tple
+        instrument_sound = instrument(Note(pitch=pitch, duration=duration, note_on_velocity=note_on_velocity, note_off_velocity=note_off_velocity, srate=srate))
+        result = merge(result, instrument_sound, int(t * srate))
+        t += duration
+    return result

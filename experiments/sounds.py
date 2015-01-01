@@ -271,3 +271,12 @@ def formant(phase, ratio, width):
         z *= m
         s += z.imag * q ** (n - ratio) ** 2
     return s / norm
+
+# Resonant sine
+y = 0
+x = 0.5
+v = 0.0
+for t in time(10):
+    x += v
+    v += (random() - 0.5) * t * 0.5 - x * x * x / (1 + x * x) * 0.002
+    s.append(x * 0.00005)

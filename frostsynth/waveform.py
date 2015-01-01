@@ -472,7 +472,10 @@ def cycloid(phase, sharpness=1):
 def softarc(phase, sharpness):
     if sharpness < epsilon:
         return cos(two_pi * phase)
-    return (hypot((1 + sharpness) * cos(pi * phase), (1 - sharpness) * sin(pi * phase)) - 1) / sharpness
+    elif sharpness < 1:
+        return (hypot((1 + sharpness) * cos(pi * phase), (1 - sharpness) * sin(pi * phase)) - 1) / sharpness
+    else:
+        return abs(cos(pi * phase)) * 2 - 1
 
 
 def softtriangle(phase, sharpness):
@@ -674,6 +677,45 @@ def theta_formant(phase, ratio, width):
     else:
         x = phase - floor(phase + 0.5)
         return exp(-width * x * x) * cos(two_pi * x * ratio)
+
+
+def tentfold(phase, level, bias=0.5, iterations=5):
+    bias = clip(bias, epsilon, 1 - epsilon)
+    bias1 = 1 - bias
+    level = clip(bias + level * bias1, bias, 1)
+    x = phase - floor(phase)
+    m0 = level / bias
+    m1 = level / bias1
+    for _ in range(iterations):
+        if x < bias:
+            x *= m0
+        else:
+            x = (1 - x) * m1
+    return 2 * x / level - 1
+
+
+def parfold(phase, level, iterations=5, scale=0.99):
+    r = clip(2 + 2 * level, 2, 4)
+    x = phase - floor(phase)
+    x = 0.5 * (1 - scale) + x * scale
+    for _ in range(iterations):
+        x = r * x * (1 - x)
+    return 8 * x / r - 1
+
+
+def cosfold(phase, level, iterations=5):
+    x = phase - floor(phase)
+    level = clip(0.5 * level, epsilon, 0.5)
+    for _ in range(iterations):
+        x = (1 - cos(two_pi * x)) * level
+    return x / level - 1
+
+
+def sinfold(phase, level, bias=0, iterations=5):
+    phase = sin(phase * two_pi)
+    for _ in range(iterations):
+        phase = sin((phase * level + bias) * two_pi)
+    return phase
 
 
 def sine(phase):
