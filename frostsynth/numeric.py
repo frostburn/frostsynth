@@ -1,4 +1,5 @@
-from frostsynth import epsilon
+from frostsynth import epsilon, linspace
+from frostsynth.polytable import CubicTable
 
 
 def zeros(f, resolution=0.01, iterations=100):
@@ -33,3 +34,15 @@ def zeros(f, resolution=0.01, iterations=100):
 def optima(f, lattice_constant=epsilon, resolution=0.01, iterations=100):
     lattice_constant *= 0.5
     return zeros(lambda x: f(x + lattice_constant) - f(x - lattice_constant), resolution=resolution, iterations=iterations)
+
+
+def cubic_approximate(f, df, x0, x1, samples, periodic=False):
+    ls = linspace(x0, x1, samples)
+    values = [f(x) for x in ls]
+    derivatives = [df(x) / samples for x in ls]
+    ct = CubicTable(zip(values, derivatives), periodic=periodic)
+    if periodic:
+        scale = len(ct) / (x1 - x0)
+    else:
+        scale = (len(ct) - 2) / (x1 - x0)
+    return lambda x: ct((x - x0) * scale)

@@ -224,12 +224,15 @@ if False:
 
 
 
-
+#print (et3(0.9), elliptic_theta3_q(0.9))
 
 #print([max(abs(sine_formant(t, 1, w)) for t in linspace(0, 1, 100)) for w in linspace(0, 10, 200)])
 
 
-s = [cos_sum(220 * t, [exp(-t), exp(-2*t), exp(-3*t), exp(-4*t), exp(-5*t)]) * 0.2 for t in time(1)]
+#s = [sin_tritave_sum(220 * t, [exp(-t), exp(-2*t), exp(-3*t), exp(-4*t), exp(-5*t)]) * 0.2 for t in time(1)]
+
+
+s = [theta_formant_c(220 * t, 10 - t, 1 + t * 20) for t in time(10)]
 
 
 if True:

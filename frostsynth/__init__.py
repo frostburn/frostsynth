@@ -300,6 +300,8 @@ two_pi = 2 * math.pi
 two_pi_j = two_pi * 1j
 
 
+pi_squared = math.pi * math.pi
+
 i_pi = 1 / math.pi
 
 

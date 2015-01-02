@@ -120,7 +120,8 @@ def irfft_waveform2(windows, periodic_y=False):
     if periodic_y:
         return lambda p, s: xct(p * lx, s * ly)
     else:
-        return lambda p, s: xct(p * lx, s * (ly - 2))
+        ly -= 2
+        return lambda p, s: xct(p * lx, s * ly)
 
 
 # TODO: Fade bandwidth.
@@ -158,17 +159,7 @@ def cos_sum(phase, coefs):
     elif len(coefs) == 1:
         return coefs[0]
     elif len(coefs) == 2:
-        return coefs[0] + cos(two_pi * phase) * coefs[1]
-    elif False:
-        c = cos(two_pi * phase)
-        result = coefs[0] + c * coefs[1]
-        cn = 1
-        cn1 = c
-        c = c + c
-        for coef in coefs[2:]:
-            cn1, cn = c * cn1 - cn, cn1
-            result += cn1 * coef
-        return result
+        return coefs[0] + coefs[1] * cos(two_pi * phase)
     else:
         c = cos(two_pi * phase)
         c2 = c + c
@@ -179,40 +170,81 @@ def cos_sum(phase, coefs):
         return coefs[0] + c * bk1 - bk
 
 
+def cos_octave_sum(phase, coefs):
+    if not coefs:
+        return 0
+    elif len(coefs) == 1:
+        return coefs[0] * cos(two_pi * phase)
+    else:
+        c = cos(two_pi * phase)
+        result = coefs[0] * c
+        for coef in coefs[1:]:
+            c = 2 * c * c - 1
+            result += coef * c
+        return result
+
 
 four_pi = 4 * pi
 
-# TODO: Clenshaw
+
 def sin_sum(phase, coefs):
     if not coefs:
         return 0
     elif len(coefs) == 1:
-        return sin(two_pi * phase) * coefs[0]
+        return coefs[0] * sin(two_pi * phase)
     elif len(coefs) == 2:
-        return sin(two_pi * phase) * coefs[0] + sin(four_pi * phase) * coefs[1]
+        return coefs[0] * sin(two_pi * phase) + coefs[1] * sin(four_pi * phase)
     else:
-        c = 2 * cos(two_pi * phase)
-        result = coefs[0] + c * coefs[1]
-        cn = 1
-        cn1 = c
-        for coef in coefs[2:]:
-            cn1, cn = c * cn1 - cn, cn1
-            result += cn1 * coef
-        return sin(two_pi * phase) * result
+        c2 = 2 * cos(two_pi * phase)
+        bk = coefs[-1]
+        bk1 = coefs[-2] + c2 * bk
+        for coef in coefs[-3:0:-1]:
+            bk1, bk = coef + c2 * bk1 - bk, bk1
+        return sin(two_pi * phase) * (coefs[0] + c2 * bk1 - bk)
 
 
 def sin_odd_sum(phase, coefs):
     if not coefs:
         return 0
     elif len(coefs) == 1:
-        return sin(two_pi * phase) * coefs[0]
+        return coefs[0] * sin(two_pi * phase)
     else:
         s = sin(two_pi * phase)
-        result = s * coefs[0]
-        sn = -s
-        sn1 = s
-        s = -4 * s * s + 2
+        s2 = 2 - 4 * s * s
+        bk = coefs[-1]
+        bk1 = coefs[-2] + s2 * bk
+        for coef in coefs[-3::-1]:
+            bk1, bk = coef + s2 * bk1 - bk, bk1
+        return s * (bk1 + bk)
+
+
+def sin_octave_sum(phase, coefs):
+    if not coefs:
+        return 0
+    elif len(coefs) == 1:
+        return coefs[0] * sin(two_pi * phase)
+    else:
+        c = cos(two_pi * phase)
+        s = sin(two_pi * phase)
+        result = coefs[0] * s
+        s *= c + c
+        result += coefs[1] * s
+        for coef in coefs[2:]:
+            c = 2 * c * c - 1
+            s *= c + c
+            result += coef * s
+        return result
+
+
+def sin_tritave_sum(phase, coefs):
+    if not coefs:
+        return 0
+    elif len(coefs) == 1:
+        return coefs[0] * sin(two_pi * phase)
+    else:
+        s = sin(two_pi * phase)
+        result = coefs[0] * s
         for coef in coefs[1:]:
-            sn1, sn = s * sn1 - sn, sn1
-            result += sn1 * coef
+            s = s * (3 - 4 * s * s)
+            result += coef * s
         return result
