@@ -150,3 +150,69 @@ def irfft_osc_gen(frequency, windows, dt=0.1, srate=None):
         yield w0 + t * i_dt * (wf1(phase) - w0)
         phase += dt_ * f
         t += dt_
+
+
+def cos_sum(phase, coefs):
+    if not coefs:
+        return 0
+    elif len(coefs) == 1:
+        return coefs[0]
+    elif len(coefs) == 2:
+        return coefs[0] + cos(two_pi * phase) * coefs[1]
+    elif False:
+        c = cos(two_pi * phase)
+        result = coefs[0] + c * coefs[1]
+        cn = 1
+        cn1 = c
+        c = c + c
+        for coef in coefs[2:]:
+            cn1, cn = c * cn1 - cn, cn1
+            result += cn1 * coef
+        return result
+    else:
+        c = cos(two_pi * phase)
+        c2 = c + c
+        bk = coefs[-1]
+        bk1 = coefs[-2] + c2 * bk
+        for coef in coefs[-3:0:-1]:
+            bk1, bk = coef + c2 * bk1 - bk, bk1
+        return coefs[0] + c * bk1 - bk
+
+
+
+four_pi = 4 * pi
+
+# TODO: Clenshaw
+def sin_sum(phase, coefs):
+    if not coefs:
+        return 0
+    elif len(coefs) == 1:
+        return sin(two_pi * phase) * coefs[0]
+    elif len(coefs) == 2:
+        return sin(two_pi * phase) * coefs[0] + sin(four_pi * phase) * coefs[1]
+    else:
+        c = 2 * cos(two_pi * phase)
+        result = coefs[0] + c * coefs[1]
+        cn = 1
+        cn1 = c
+        for coef in coefs[2:]:
+            cn1, cn = c * cn1 - cn, cn1
+            result += cn1 * coef
+        return sin(two_pi * phase) * result
+
+
+def sin_odd_sum(phase, coefs):
+    if not coefs:
+        return 0
+    elif len(coefs) == 1:
+        return sin(two_pi * phase) * coefs[0]
+    else:
+        s = sin(two_pi * phase)
+        result = s * coefs[0]
+        sn = -s
+        sn1 = s
+        s = -4 * s * s + 2
+        for coef in coefs[1:]:
+            sn1, sn = s * sn1 - sn, sn1
+            result += sn1 * coef
+        return result

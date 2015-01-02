@@ -21,7 +21,6 @@ from frostsynth.polytable import *
 from frostsynth.blit import *
 from frostsynth.quantize import *
 from frostsynth.numeric import *
-from frostsynth.specfunc import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
 from frostsynth.ffi import malloc_copy, precycloid, j0, j1, jn, y0, y1, yn
@@ -221,7 +220,16 @@ if False:
 
     s = gain(s, 0.2)
 
-print ([dawson(x) for x in linspace(-5, 5, 200)])
+#print ([theta_rect(x, 0.9) for x in linspace(0, 1, 200)])
+
+
+
+
+
+#print([max(abs(sine_formant(t, 1, w)) for t in linspace(0, 1, 100)) for w in linspace(0, 10, 200)])
+
+
+s = [cos_sum(220 * t, [exp(-t), exp(-2*t), exp(-3*t), exp(-4*t), exp(-5*t)]) * 0.2 for t in time(1)]
 
 
 if True:

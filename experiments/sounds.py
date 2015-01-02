@@ -280,3 +280,14 @@ for t in time(10):
     x += v
     v += (random() - 0.5) * t * 0.5 - x * x * x / (1 + x * x) * 0.002
     s.append(x * 0.00005)
+
+
+def sine_formant(phase, ratio, width):
+    """Formant waveform with energy concentrated on the harmonic specified by ratio."""
+    ratio = floor(ratio)
+    if width < 700:
+        x = pi * phase
+        return cosh(cos(x) * width) / cosh(width) * sin(2 * x * ratio) * (1 + 0.24 * sqrt(width ** 3 / (1 + width ** 2 * 0.21)))
+    else:
+        x = phase - floor(phase + 0.5)
+        return exp(-half_pi_squared * width * x * x) * sin(two_pi * x * ratio)

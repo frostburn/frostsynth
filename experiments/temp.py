@@ -1,8 +1,10 @@
-from math import copysign
+from math import *
+from scipy.special import dawsn
 
-from frostsynth import epsilon
+epsilon = 1e-10
 
 
+# TODO: Needs work.
 def dawson(x):
     y = abs(x)
     if (y < epsilon):
@@ -22,3 +24,44 @@ def dawson(x):
         ix = 1 / x
         ix2 = ix * ix
         return ix * (0.5 + ix2 * (0.25 + ix2 * (0.375 + ix2 * (0.9375 + ix2 * (3.28125 + ix2 * (14.765625 + ix2 * (81.2109375 + 527.87109375 * ix2)))))))
+
+def theta_complement(phase, sharpness):
+    """Hilbert transform of the theta function. (Antisymmetric)"""
+    q = sharpness
+    if q < epsilon:
+        return sin(two_pi * phase)
+    if q < 0.5:
+        q2 = q * q
+        q4 = q2 * q2
+        q8 = q4 * q4
+        q9 = q8 * q
+        q16 = q8 * q8
+        q25 = q16 * q9
+
+        c = cos(two_pi * phase)
+        s = sin(two_pi * phase)
+        s_2 = s * s
+        s2 = 2 * s * c
+        s3 = s * (3 - 4 * s_2)
+        s4 = 4 * s * (c * c - 0.5)
+        s5 = s * (5 + s_2 * (16 * s_2 - 20))
+
+        return (q * s + q4 * s2 + q9 * s3 + q16 * s4 + q25 * s5) / (q + q4 + q9 + q16 + q25)
+    else:
+        t = phase - floor(phase + 0.5)
+        i_log_q = 1 / log(q)
+        a = pi_squared * i_log_q
+
+        b = exp(a)
+        b4 = b ** 4
+
+        c = 0.5 * sqrt(-pi * i_log_q)
+
+        return 2 / sqrt(pi) * sum(dawson(sqrt(-a) * (t - n)) for n in range(-10, 11)) * c / ((1 + 2 * (b + b4)) * c - 0.5)
+
+theta_c = theta_complement
+
+
+xs = [i * 0.0001 for i in range(3000)]
+
+print max(abs(dawson(x) - dawsn(x)) for x in xs)
