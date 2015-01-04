@@ -229,10 +229,30 @@ if False:
 #print([max(abs(sine_formant(t, 1, w)) for t in linspace(0, 1, 100)) for w in linspace(0, 10, 200)])
 
 
-#s = [sin_tritave_sum(220 * t, [exp(-t), exp(-2*t), exp(-3*t), exp(-4*t), exp(-5*t)]) * 0.2 for t in time(1)]
+#s = [cis_sum(220 * t, [0, exp(-t), exp(-2*t), exp(-3*t), exp(-4*t), exp(-5*t)]).imag * 0.2  for t in time(1)]
+#s = [sin_sum(220 * t, [exp(-t), exp(-2*t), exp(-3*t), exp(-4*t), exp(-5*t)]) * 0.2 for t in time(1)]
 
+#s = [(sine(220 * t) * exp(-t) + sine(2 * 220 * t) * exp(-2 * t) + sine(3 * 220 * t) * exp(-3 *t) + sine(4*220 * t) * exp(-4*t) + sine(5*220 * t) * exp(-5*t)) * 0.2 for t in time(1)]
+#s = [theta_formant_c(220 * t, 10 - t, 1 + t * 20) for t in time(10)]
 
-s = [theta_formant_c(220 * t, 10 - t, 1 + t * 20) for t in time(10)]
+"""
+270 ff
+520 pp
+790 p
+1060 f
+2025 mf
+2670 f (fast decay)
+3580 p
+4290 p (fast decay)
+11985 p (fast decay)
+"""
+
+s = sinepings([1, 0.05, 0.1, 0.7, 0.5, 0.6, 0.03, 0.04, 0.03], [270, 520, 790, 1060, 2670, 3580, 4290, 11985], [1, 3, 2, 3, 2, 9, 3, 15, 15])
+s = gain(s, 0.2)
+
+print (len(s))
+
+#s = s[::-1]
 
 
 if True:

@@ -1,4 +1,5 @@
 from math import *
+from cmath import rect as from_polar
 from itertools import *
 
 from frostsynth import *
@@ -6,22 +7,27 @@ from frostsynth.fft import *
 from frostsynth.polytable import *
 
 
-def sineping_gen(amplitude, frequency, decay, theta=0, srate=None):
-    """Generates amplitude * sin(2 * pi * t * frequency + theta) * exp(-t * decay)."""
+four_pi = 4 * pi
+
+
+def sineping_gen(amplitude, frequency, decay, phi=0, srate=None):
+    """Generates amplitude * sin(2 * pi * t * frequency + phi) * exp(-t * decay)."""
     srate = get_srate(srate)
 
-    dt = 1.0 / srate
+    dt = 1 / srate
 
 
     d = exp(-dt * decay)
-    i_d = 1.0 / d
     w = two_pi * dt * frequency
 
     a1 = 2 * d * cos(w)
     a2 = d * d
 
-    y1 = amplitude * sin(theta - w - w) * i_d * i_d
-    y0 = amplitude * sin(theta - w ) * i_d
+    y1 = amplitude * sin(phi)
+    yield y1
+
+    y0 = amplitude * sin(phi + w) * d
+    yield y0
 
     while True:
         y2 = y0
@@ -32,24 +38,31 @@ def sineping_gen(amplitude, frequency, decay, theta=0, srate=None):
         yield y0
 
 
-def sinepings_gen(amplitudes, frequencies, decays, thetas=None, srate=None):
-    if thetas is None:
-        thetas = repeat(0)
-    sps = [sineping_gen(*params) for params in zip(amplitudes, frequencies, decays, thetas, repeat(srate))]
+def sinepings_gen(amplitudes, frequencies, decays, phis=None, srate=None):
+    if phis is None:
+        phis = repeat(0)
+    sps = [sineping_gen(*params) for params in zip(amplitudes, frequencies, decays, phis, repeat(srate))]
     return mix_gen(sps)
 
 
+def sinepings(amplitudes, frequencies, decays, phis=None, accuracy_goal=1e-4, srate=None):
+    duration_constant = -log(accuracy_goal)
+    if phis is None:
+        phis = repeat(0)
+    sps = [timeslice_gen(sineping_gen(*params), duration_constant / params[2], srate=srate) for params in zip(amplitudes, frequencies, decays, phis, repeat(srate))]
+    return mix_longest(sps)
 
-def bl_sinepings_gen(amplitudes, frequencies, decays, thetas=None, srate=None):
+
+def bl_sinepings_gen(amplitudes, frequencies, decays, phis=None, srate=None):
     if srate is None:
         srate = get_srate()
     nyquist = 0.5 * srate
 
-    if thetas is None:
-        thetas = repeat(0)
+    if phis is None:
+        phis = repeat(0)
 
     new_params = []
-    for a, f, d, t in zip(amplitudes, frequencies, decays, thetas):
+    for a, f, d, t in zip(amplitudes, frequencies, decays, phis):
         if f < nyquist:
             new_params.append((a, f, d, t, srate))
     sps = [sineping_gen(*params) for params in new_params]
@@ -154,6 +167,7 @@ def irfft_osc_gen(frequency, windows, dt=0.1, srate=None):
 
 
 def cos_sum(phase, coefs):
+    """Evaluates sum(coef * cos(2 * pi * k * phase) for k, coef in enumerate(coefs, 0))."""
     if not coefs:
         return 0
     elif len(coefs) == 1:
@@ -171,6 +185,7 @@ def cos_sum(phase, coefs):
 
 
 def cos_octave_sum(phase, coefs):
+    """Evaluates sum(coef * cos(2 * pi * 2 ** k * phase) for k, coef in enumerate(coefs, 0))."""
     if not coefs:
         return 0
     elif len(coefs) == 1:
@@ -184,10 +199,8 @@ def cos_octave_sum(phase, coefs):
         return result
 
 
-four_pi = 4 * pi
-
-
 def sin_sum(phase, coefs):
+    """Evaluates sum(coef * sin(2 * pi * k * phase) for k, coef in enumerate(coefs, 1))."""
     if not coefs:
         return 0
     elif len(coefs) == 1:
@@ -204,6 +217,7 @@ def sin_sum(phase, coefs):
 
 
 def sin_odd_sum(phase, coefs):
+    """Evaluates sum(coef * sin(2 * pi * (2 * k - 1) * phase) for k, coef in enumerate(coefs, 1))."""
     if not coefs:
         return 0
     elif len(coefs) == 1:
@@ -219,6 +233,7 @@ def sin_odd_sum(phase, coefs):
 
 
 def sin_octave_sum(phase, coefs):
+    """Evaluates sum(coef * sin(2 * pi * 2 ** k * phase) for k, coef in enumerate(coefs, 0))."""
     if not coefs:
         return 0
     elif len(coefs) == 1:
@@ -237,6 +252,7 @@ def sin_octave_sum(phase, coefs):
 
 
 def sin_tritave_sum(phase, coefs):
+    """Evaluates sum(coef * sin(2 * pi * 3 ** k * phase) for k, coef in enumerate(coefs, 0))."""
     if not coefs:
         return 0
     elif len(coefs) == 1:
@@ -247,4 +263,16 @@ def sin_tritave_sum(phase, coefs):
         for coef in coefs[1:]:
             s = s * (3 - 4 * s * s)
             result += coef * s
+        return result
+
+
+def cis_sum(phase, coefs, sharpness=1):
+    """Evaluates sum(coef * exp(2j * pi * k * phase) for k, coef in enumerate(coefs, 0))."""
+    if not coefs:
+        return 0j
+    else:
+        z = from_polar(sharpness, two_pi * phase)
+        result = coefs[-1]
+        for coef in coefs[-2::-1]:
+            result = coef + z * result
         return result

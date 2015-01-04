@@ -233,6 +233,24 @@ def mix_gen(sources):
     return map(sum, zip(*sources))
 
 
+def mix_longest_gen(sources):
+    sources = [iter(source) for source in sources]
+    while True:
+        result = 0
+        for source in sources[:]:
+            try:
+                result += next(source)
+            except StopIteration:
+                sources.remove(source)
+        if not sources:
+            return
+        yield result
+
+
+def mix_longest(sources):
+    return list(mix_longest_gen(sources))
+
+
 def to_iterable(source):
     if isinstance(source, Iterable):
         return iter(source)
