@@ -5,23 +5,8 @@ from frostsynth import epsilon, clip, two_pi, i_pi, pi_squared
 from frostsynth.ffi import precycloid
 
 
+from frostsynth.waveform.saw import *
 from frostsynth.waveform.theta import *
-
-
-def saw(phase):
-    x = phase - floor(phase + 0.5)
-    return x + x
-
-
-def saw_complement(phase):
-    a = 1 + cos(two_pi * phase)
-    if (a < epsilon):
-        a = epsilon
-    #return log(1 + cos(t)) / pi + log(2) / pi
-    return log(a) * i_pi + 0.2206356001526516
-
-
-sawc = saw_complement
 
 
 def twine(phase):
@@ -51,105 +36,6 @@ def halfcircleb(phase):
 def tang(phase):
     x = phase - floor(phase + 0.5)
     return (tanh(tan(pi * phase)) - x - x) * 3.5686502577037404
-
-
-def par(phase):
-    x = phase - floor(phase + 0.5)
-    return 6 * x * x - 0.5
-
-
-def par_complement(phase):
-    x = phase - floor(phase + 0.5)
-    if x < -0.45:
-        xx = (0.5 + x)
-        return xx * (-6.50377029198 + 39.1640305629 * xx) - 0.82780791828 * sqrt(xx)
-    elif x < -0.4:
-        return -6.52202646969 + x * (-47.7235413275 + x * (-131.454491059 - 123.496136031 * x))
-    elif x < -0.35:
-        return -1.22922321362 + x * (-8.5259921333 + x * (-34.7068061396 - 43.9115553199 * x))
-    elif x < -0.25:
-        return -0.167319598632 + x * (0.61647503263 + x * (-8.46993943614 - 18.8140327989 * x))
-    elif x < -0.15:
-        return -0.0107270508022 + x * (2.43730170152 + x * (-1.4197683794 - 9.72465221494 * x))
-    elif x < 0.15:
-        return x * (2.64762720183 - 6.4289442721 * x * x)
-    elif x < 0.25:
-        return 0.0107270508022 + x * (2.43730170152 + x * (1.4197683794 - 9.72465221494 * x))
-    elif x < 0.35:
-        return 0.167319598632 + x * (0.61647503263 + x * (8.46993943614 - 18.8140327989 * x))
-    elif x < 0.4:
-        return 1.22922321362 + x * (-8.5259921333 + x * (34.7068061396 - 43.9115553199 * x))
-    elif x < 0.45:
-        return 6.52202646969 + x * (-47.7235413275 + x * (131.454491059 - 123.496136031 * x))
-    else:
-        xx = (0.5 - x)
-        return xx * (6.50377029198 - 39.1640305629 * xx) + 0.82780791828 * sqrt(xx)
-
-
-parc = par_complement
-
-
-def cub(phase):
-    x = phase - floor(phase + 0.5)
-    return x * (5.19615242270663188 - 20.7846096908265275 * x * x)
-
-
-def cub_complement(phase):
-    x = phase - floor(phase + 0.5)
-    if x < -0.485:
-        return -141.683313066 + x * (-890.871247193 + x * (-1877.70991482 - 1315.78489017 * x))
-    elif x < -0.45:
-        return -14.4841833281 + x * (-107.462486507 + x * (-269.423768994 - 215.237469947 * x))
-    elif x < -0.4:
-        return -2.72415704125 + x * (-29.4601745573 + x * (-96.9694386506  - 88.148440549 * x))
-    elif x < -0.35:
-        return -0.242340474369 + x * (-11.0004026851 + x * (-51.2046399185 + -50.3316340626 *x))
-    elif x < -0.25:
-        return 0.645147736088 + x * (-3.29984031237 + x * (-28.9358315141 - 28.8687673678 * x))
-    elif x < -0.15:
-        return 0.871037573309 + x * (-0.634232323039 + x * (-18.4536797861 - 15.1329387029 * x))
-    elif x < 0.15:
-        x2 = x * x
-        return 0.90154267737 + x2 * (-13.6879509584 + 16.7397805313 * x2)
-    elif x < 0.25:
-        return 0.871037573309 + x * (0.634232323039 + x * (-18.4536797861 + 15.1329387029 * x))
-    elif x < 0.35:
-        return 0.645147736088 + x * (3.29984031237 + x * (-28.9358315141 + 28.8687673678 * x))
-    elif x < 0.4:
-        return -0.242340474369 + x * (11.0004026851 + x * (-51.2046399185 + 50.3316340626 *x))
-    elif x < 0.45:
-        return -2.72415704125 + x * (29.4601745573 + x * (-96.9694386506  + 88.148440549 * x))
-    elif x < 0.485:
-        return -14.4841833281 + x * (107.462486507 + x * (-269.423768994 + 215.237469947 * x))
-    else:
-        return -141.683313066 + x * (890.871247193 + x * (-1877.70991482 + 1315.78489017 * x))
-
-
-cubc = cub_complement
-
-
-def qua(phase):
-    x = phase - floor(phase + 0.5)
-    x2 = x * x
-    return 0.875 - x2 * (15 - 30 * x2)
-
-
-def qui(phase):
-    x = phase - floor(phase + 0.5)
-    x2 = x * x
-    return x * (5.96255602510703402 - x2 * (34.0717487148973373 - 40.8860984578768047 * x2))
-
-
-def sex(phase):
-    x = phase - floor(phase + 0.5)
-    x2 = x * x
-    return -0.96875 + x2 * (18.375 + x2 * (42 * x2 - 52.5))
-
-
-def sep(phase):
-    x = phase - floor(phase + 0.5)
-    x2 = x * x
-    return x * (x2 * (39.164736561902885 + x2 * (38.365456223904864 * x2 - 67.13954839183351)) - 6.19442261948464)
 
 
 def tooth(phase):

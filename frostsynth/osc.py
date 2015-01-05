@@ -23,7 +23,7 @@ def noisy_phases_gen(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5,
     for s, freq in zip(linspace(-spread, spread, count), tee(frequency, count)):
         f, freq = tee(freq)
         noise = snow3_gen((f * noise_speed for f in f), variability=0.5)
-        phases.append((lambda s: integrate_gen(f * itom(s + n * noise_spread) for f, n in zip(freq, noise)))(s))
+        phases.append((lambda s: integrate_gen(f * itofm(s + n * noise_spread) for f, n in zip(freq, noise)))(s))
     return [(lambda s: (p + s for p in phase))(shift) for phase, shift in zip(phases, shifts)]
 
 
@@ -32,7 +32,7 @@ def noisy_phases(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5, cou
     phases = []
     for s in linspace(-spread, spread, count):
         noise = snow3([f * noise_speed for f in frequency], variability=0.5)
-        phases.append(integrate(f * itom(s + n * noise_spread) for f, n in zip(frequency, noise)))
+        phases.append(integrate(f * itofm(s + n * noise_spread) for f, n in zip(frequency, noise)))
     return [[p + s for p in phase] for phase, s in zip(phases, shifts)]
 
 

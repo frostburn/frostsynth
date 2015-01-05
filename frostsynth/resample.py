@@ -3,6 +3,21 @@ from frostsynth import *
 from frostsynth.interpolation import *
 
 
+def resampler0_gen(source, ratio):
+    """Dynamic resampling of 'source' by variable ratio. Constant interpolation."""
+    ratio = to_iterable(ratio)
+
+    sample = next(source)
+    index = 0.0
+    source_index = 1
+    while True:
+        yield sample
+        index += next(ratio)
+        while source_index <= index:
+            sample = next(source)
+            source_index += 1
+
+
 def resampler1_gen(source, ratio):
     """Dynamic resampling of 'source' by variable ratio. First order interpolation."""
     source = chain(source, [0.0])

@@ -1,4 +1,7 @@
-from math import floor
+from math import floor, sqrt
+from cmath import sqrt as csqrt
+
+from frostsynth import epsilon
 
 
 class PolyTable(list):
@@ -21,6 +24,10 @@ class PolyTable(list):
         for coefficient in self[index]:
             r = mu * r + coefficient
         return r
+
+    def scale(self, multiplier):
+        for index, coefficients in enumerate(self[:]):
+            self[index] = tuple(multiplier * coefficient for coefficient in coefficients)
 
     def dc_block(self):
         dc = 0.0
@@ -51,6 +58,56 @@ class PolyTable(list):
             new_coefficients.append(dc)
             dc = sum(new_coefficients)
             self[index] = tuple(new_coefficients)
+
+
+    def zeros(self):
+        result = []
+        for index, coefficients in enumerate(self):
+            x = index - self.shift
+            if len(coefficients) == 1 and coefficients[0] == 0:
+                result.append(x)
+            elif len(coefficients) == 2:
+                zero = -coefficients[1] / coefficients[0]
+                if 0 <= zero <= 1:
+                    result.append(x + zero)
+            elif len(coefficients) == 3:
+                discriminant = coefficients[1] ** 2 - 4 * coefficients[0] * coefficients[2]
+                if discriminant >= 0:
+                    sqrt_d = sqrt(discriminant)
+                    zero = (-coefficients[1] + sqrt_d) / (2 * coefficients[0])
+                    if 0 <= zero <= 1:
+                        result.append(x + zero)
+                    if sqrt_d != 0:
+                        zero = (-coefficients[1] - sqrt_d) / (2 * coefficients[0])
+                        if 0 <= zero <= 1:
+                            result.append(x + zero)
+            elif len(coefficients) == 4 and False: #TODO: Fix
+                a = coefficients[0]
+                b = coefficients[1]
+                c = coefficients[2]
+                d = coefficients[3]
+
+                #delta = 18 * a * b * c * d - 4 * b ** 3 * d + b ** 2 * c ** 2 - 4 * a * c ** 3 - 27 * a ** 2 * d ** 2
+
+                delta0 = b ** 2 - 3 * a * c
+                delta1 = 2 * b ** 3 - 9 * a * b * c + 27 * a ** 2 * d
+                C = (0.5 * (delta1 + csqrt(delta1 ** 2 - 4 * delta0 ** 3))) ** (1 / 3)
+
+                u1 = 1
+                u2 = -0.5 + 1j * 0.8660254037844386j
+                u3 = -0.5 + 1j * 0.8660254037844386j
+
+                for u in [u1, u2, u3]:
+                    zero = -1 / (3 * a) * (b + u * C + delta0 / (u * C))
+                    if abs(zero.imag) < epsilon:
+                        zero = zero.real
+                        if 0 <= zero <= 1 and zero not in result:
+                            result.append(x + zero)
+            else:
+                from frostsynth.numeric import zeros_in
+                result.extend(zeros_in(self, x, x + 1))
+
+        return result
 
 
 class ConstantTable(PolyTable):

@@ -65,6 +65,17 @@ def impulse_t(duration, value=1.0, srate=None):
     return impulse(int(duration * srate), value=value)
 
 
+def linrange(start, end, samples):
+    scale = (end - start) / samples
+    return [start + i * scale for i in range(samples)]
+
+
+def linrange_t(start, end, duration, srate=None):
+    if srate is None:
+        srate = _srate
+    return linrange(start, end, int(duration * srate))
+
+
 def linspace(start, end, samples):
     scale = (end - start) / (samples - 1)
     return [start + i * scale for i in range(samples)]
@@ -114,8 +125,11 @@ def time_gen(t0=0.0, srate=None):
     return (t0 + i * dt for i in count())
 
 
-def timed(*iterables, t0=0.0, srate=None):
-    return zip(*((time_gen(t0, srate),) + iterables))
+def timed(*iterables, start=0, stop=None, srate=None):
+    if start is None and stop is None:
+        return zip(*((time_gen(srate=srate),) + iterables))
+    else:
+        return timeslice_gen(zip(*((time_gen(srate=srate),) + iterables)), start, stop)
 
 
 def time_dt_gen(dt, t0=0.0):
@@ -159,7 +173,7 @@ def timeslice_gen(source, *args, **kwargs):
         srate = _srate
     
     if len(args)==1:
-        start = 0.0
+        start = 0
         stop = args[0]
     else:
         start = args[0]
@@ -195,6 +209,13 @@ def warmup_gen(source, t0, srate=None):
     for i in range(k):
         next(source)
     return source
+
+
+def repeat_last(iterable):
+    for item in iterable:
+        yield item
+    while True:
+        yield item
 
 
 def gain(source, g):

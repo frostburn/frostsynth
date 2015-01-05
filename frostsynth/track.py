@@ -2,6 +2,7 @@ from math import log
 from itertools import repeat
 
 from frostsynth import *
+from frostsynth.resample import resampler0_gen
 
 
 def step_sequence_gen(track, click=False, fillvalue=0.0, t=None, srate=None):
@@ -137,9 +138,14 @@ def ftom(f):
     return 69 + 12 * log(f / 440.0, 2)
 
 
-def itom(i):
+def itofm(i):
     """Converts midi interval to frequency multiplier."""
     return 2 ** (i / 12.0)
+
+
+def fmtoi(fm):
+    """Converts frequency multiplier to midi interval."""
+    return 12 * log(fm, 2)
 
 
 # Spam the International names of midi pitches into the namespace.
@@ -180,8 +186,14 @@ class Event(object):
         return get_srate(self._srate)
 
 
+class Rest(Event):
+    def __init__(self, duration=None, srate=None):
+        super().__init__(srate=srate)
+        self.duration = duration
+
+
 class Note(Event):
-    def __init__(self, pitch=None, frequency=None, note_on_velocity=None, duration=None, note_off_velocity=None, srate=None):
+    def __init__(self, pitch=None, frequency=None, note_on_velocity=None, duration=None, note_off_velocity=None, pitch_bend=None, srate=None):
         super().__init__(srate=srate)
         if pitch is not None:
             if frequency is not None:
@@ -195,10 +207,26 @@ class Note(Event):
         self.note_on_velocity = note_on_velocity
         self.duration = duration
         self.note_off_velocity = note_off_velocity
+        if pitch_bend is not None:
+            pitch_bend = repeat_last(pitch_bend)
+        self.pitch_bend = pitch_bend
 
 
     def get_frequency_gen(self):
-        return repeat(self.frequency)
+        if self.pitch_bend is None:
+            return repeat(self.frequency)
+        else:
+            return (itofm(bend) * self.frequency for bend in self.pitch_bend)
+
+    def get_phase_gen(self):
+        return integrate_gen(self.get_frequency_gen(), srate=self.srate)
+
+    def multiply_duration(self, multiplier):
+        if multiplier != 1:
+            self.duration *= multiplier
+            if self.pitch_bend is not None:
+                self.pitch_bend = resampler0_gen(self.pitch_bend, 1 / multiplier)
+
 
 
 class AbsoluteMixin(object):
@@ -251,7 +279,7 @@ def merge(list1, list2, k):
     return result
 
 
-def note_list_to_sound(track, instrument):
+def absolute_note_list_to_sound(track, instrument):
     result = []
     for absolute_note in sorted(track):
         instrument_sound = instrument(absolute_note)
@@ -259,7 +287,7 @@ def note_list_to_sound(track, instrument):
     return result
 
 
-def percussion_list_to_sound(track, percussion_bank):
+def absolute_percussion_list_to_sound(track, percussion_bank):
     result = []
     for absolute_percussion in sorted(track):
         if absolute_percussion.index in percussion_bank:
@@ -304,28 +332,65 @@ def percussion_tuples_to_sound(track, srate=None):
 #TODO: percussion_sequence_to_sound_gen
 
 
-def note_tuples_to_sound(instrument, track, srate=None):
+def notes_to_sound(instrument, track, duration_multiplier=1, srate=None):
     """
-    Turns list of (pitch, duration, note_on_velocity, note_off_velocity) tuples into sound.
+    Turns list of notes or (pitch, duration, note_on_velocity, note_off_velocity) tuples into sound.
+    Duration can also be a tuple of (track_duration, note_duration) or (track_duration,).
     """
     srate = get_srate(srate)
     duration = 1.0
+    note_duration = 1.0
     note_on_velocity = 0.7
     note_off_velocity = 0.5
     t = 0.0
     result = []
-    for tple in track:
-        if hasattr(tple,'__getitem__'):
-            pitch = tple[0]
-            if len(tple) > 1:
-                duration = tple[1]
-                if len(tple) > 2:
-                    note_on_velocity = tple[2]
-                    if len(tple) > 3:
-                        note_off_velocity = tple[3]
+    for item in track:
+        if isinstance(item, Note):
+            if item.duration is None:
+                item.duration = duration
+            else:
+                duration = item.duration
+                if hasattr(duration, '__getitem__'):
+                    if len(duration) == 1:
+                        duration = duration[0]
+                    else:
+                        duration, note_duration = duration
+                    item.duration = note_duration
+                else:
+                    note_duration = duration
+            if item.note_on_velocity is None:
+                item.note_on_velocity = note_on_velocity
+            else:
+                note_on_velocity = item.note_on_velocity
+            if item.note_off_velocity is None:
+                item.note_off_velocity = note_off_velocity
+            else:
+                note_off_velocity = item.note_off_velocity
+            item.multiply_duration(duration_multiplier)
+            instrument_sound = instrument(item)
+        elif isinstance(item, Rest):
+            if item.duration is not None:
+                duration = item.duration
+            instrument_sound = []
         else:
-            pitch = tple
-        instrument_sound = instrument(Note(pitch=pitch, duration=duration, note_on_velocity=note_on_velocity, note_off_velocity=note_off_velocity, srate=srate))
+            if hasattr(item, '__getitem__'):
+                pitch = item[0]
+                if len(item) > 1:
+                    duration = item[1]
+                    if hasattr(duration, '__getitem__'):
+                        if len(duration) == 1:
+                            duration = duration[0]
+                        else:
+                            duration, note_duration = duration
+                    else:
+                        note_duration = duration
+                    if len(item) > 2:
+                        note_on_velocity = item[2]
+                        if len(item) > 3:
+                            note_off_velocity = item[3]
+            else:
+                pitch = item
+            instrument_sound = instrument(Note(pitch=pitch, duration=note_duration * duration_multiplier, note_on_velocity=note_on_velocity, note_off_velocity=note_off_velocity, srate=srate))
         result = merge(result, instrument_sound, int(t * srate))
-        t += duration
+        t += duration * duration_multiplier
     return result
