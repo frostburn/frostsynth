@@ -276,3 +276,30 @@ def cis_sum(phase, coefs, sharpness=1):
         for coef in coefs[-2::-1]:
             result = coef + z * result
         return result
+
+
+def cheb_sum(x, coefs):
+    """Evaluates sum(coef * T(k, x) for k, coef in enumerate(coefs, 0)) where T(k, x) is the k:th Chebyshev polynomial."""
+    if not coefs:
+        return 0
+    else:
+        # Actually faster than cos_sum because pypy hates slices.
+        x2 = x + x
+        bk = 0
+        bk1 = 0
+        for coef in reversed(coefs):
+            bk1, bk = coef + x2 * bk1 - bk, bk1
+        return bk1 - x * bk
+
+
+def triangle_octave_sum(x, coefs):
+    if not coefs:
+        return 0
+    else:
+        t = (x + x) % 2 - 1
+        result = 0
+        for coef in coefs:
+            t = abs(t)
+            t = t + t - 1
+            result += coef * t
+        return result

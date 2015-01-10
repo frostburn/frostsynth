@@ -65,3 +65,20 @@ theta_c = theta_complement
 xs = [i * 0.0001 for i in range(3000)]
 
 print max(abs(dawson(x) - dawsn(x)) for x in xs)
+
+def float_list_to_bytes(l):
+    bs = bytearray()
+    for f in l:
+        mantissa, exponent = frexp(f)
+        mantissa = int(mantissa * 256 ** 6)
+        exponent = max(0, min(255, exponent + 128))
+        bs.extend(mantissa.to_bytes(6, 'big'))
+        bs.append(exponent)
+    return bytes(bs)
+
+
+bs = float_list_to_bytes([1,2,3,6.45,23.231])
+
+import zlib
+
+print (hex(int.from_bytes(zlib.compress(bs, level=9), 'big')))

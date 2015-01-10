@@ -5,6 +5,12 @@ from frostsynth import *
 from frostsynth.resample import resampler0_gen
 
 
+def tempo_gen(tempo=120, srate=None):
+    """Generates successive instants of time scaled by tempo (in beats per minute)."""
+    dt = tempo / (60 * get_srate(srate))
+    return (i * dt for i in count())
+
+
 def step_sequence_gen(track, click=False, fillvalue=0.0, t=None, srate=None):
     """
     Turns list of (value, duration) tuples into a generator that outputs each value for the given duration (defaults to the previous duration or 1).
@@ -51,15 +57,17 @@ def eased_step_gen(track, t=None, srate=None):
             if len(tple) > 1:
                 duration = tple[1]
                 if len(tple) > 2:
-                    ease_duration = min(tple[2], duration)
+                    ease_duration = tple[2]
         else:
             value = tple
         if old_value is None:
             old_value = value
+        #print(value, duration, ease_duration)
+        local_ease_duration = min(ease_duration, duration)
         while t0 + duration > t1:
             local_t = t1 - t0
-            if local_t < ease_duration:
-                mu = local_t / ease_duration
+            if local_t < local_ease_duration:
+                mu = local_t / local_ease_duration
                 yield old_value + mu * (value - old_value)
             else:
                 yield value
@@ -117,10 +125,11 @@ def center(track, naked=False):
             if len(tple) > 1:
                 duration = tple[1]
                 if len(tple) > 2:
-                    ease_duration = min(tple[2], duration)
+                    ease_duration = tple[2]
         else:
             value = tple
         if prev is not None:
+            local_ease_duration = min(ease_duration, duration)
             yield (prev[0], prev[1] - 0.5 * ease_duration, prev[2])
             prev = (value, duration + 0.5 * ease_duration, ease_duration)
         else:

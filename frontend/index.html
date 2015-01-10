@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Spline designer</title>
+<style>
+div {
+
+}
+</style>
+</head>
+
+<body>
+<script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
+<script type="text/javascript" src="js/svg.min.js"></script>
+<script type="text/javascript" src="js/svg.draggable.min.js"></script>
+<script type="text/javascript" src="js/spline.js"></script>
+
+<h2>Spline designer</h2>
+
+<input type="checkbox" id="snap_x_check"></input>
+<label for="snap_x">Snap X</label>
+<input type="number" id="snap_x" value="20" min="1"></input>
+
+<input type="checkbox" id="snap_y_check"></input>
+<label for="snap_y">Snap Y</label>
+<input type="number" id="snap_y" value="20" min="1"></input>
+
+<label for="unity">Unity</label>
+<input type="number" id="unity" value="300" min="1"></input>
+
+<label for="bar">Bar</label>
+<input type="number" id="bar" value="16" min="0"></input>
+
+<input type="radio" name="real_pitch" value="real" checked>Real</input>
+<input type="radio" name="real_pitch" value="pitch">Pitch</input>
+
+<button type="button" id="get_data">Get data</button>
+<input type="text" id="output"></input>
+
+<div id="drawing" style="margin-top:20px"></div>
+
+</body>
+
+</html>

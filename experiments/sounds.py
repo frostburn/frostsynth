@@ -291,3 +291,17 @@ def sine_formant(phase, ratio, width):
     else:
         x = phase - floor(phase + 0.5)
         return exp(-half_pi_squared * width * x * x) * sin(two_pi * x * ratio)
+
+
+
+# Non linear filter pluck
+def f(source):
+    y = 0
+    for sample in source:
+        y = (sample + sample * sample * 0.05 + 0.1) / (1 + sample * sample -sample * y + y * y)
+        yield y
+
+
+s = list(f([sine(220 * t) * exp(-t) + sine(440 * t) * exp(-2 * t) for t in time(4)]))
+
+s = gain(s, 0.5)

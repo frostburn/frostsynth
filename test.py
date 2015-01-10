@@ -21,6 +21,7 @@ from frostsynth.polytable import *
 from frostsynth.blit import *
 from frostsynth.quantize import *
 from frostsynth.numeric import *
+from frostsynth.sequence import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
 from frostsynth.ffi import malloc_copy, precycloid, j0, j1, jn, y0, y1, yn
@@ -255,111 +256,60 @@ if False:
 
 #f = lambda x, t=0: sin_sum(x, [0.1, 0.2, 0.5 * sine(t * 2), 1 / (t + 1), 0.5, 0.1])
 
+
 if False:
     def i(note):
         tp = timed(note.get_phase_gen(), stop=3)
-        return [softsaw(2 * p + t + 0.4 * sin_sum(p - t, [0.5, 0.5 * t, 1, 0.5 * t]) * exp(-t*2), 0.8 * exp(-t*5)) * exp(-3*t) for t, p in tp]
+        return [cheb_sum(softarc(p, exp(-t)), [0, exp(-t), exp(-2 * t)  * cub(2 * p + 3 * t), -0.5 * exp(-3 * t), 0.5 * exp(-4 * t)]) for t, p in tp]
+        #return [softsaw(2 * p + t + 0.4 * sin_sum(p - t, [0.5, 0.5 * t, 1, 0.5 * t]) * exp(-t*2), 0.8 * exp(-t*5)) * exp(-3*t) for t, p in tp]
 
     s = notes_to_sound(i, [
         (A1, 0.2), A2, (G2, 0.4), Fs2, F2, (A1, 0.2), (A1, 0.4), (A2, 0.1), (A1, 0.1), (A1, 0.4)
     ])
 
 
-    s = gain(s, 0.2)
+    s = gain(s, 0.17)
 
-
-if False:
-    def pinksaw(phase):
-        return sin_sum(phase, [n ** -1.5 for n in range(1, 500000)])
-
-    def pinksaw_d(phase):
-        return two_pi * cos_sum(phase, [0] + [n ** -0.5 for n in range(1, 500000)])
-
-
-    def f(phase):
-        return pinksaw(phase) ** 4
-
-    def df(phase):
-        return 4 * pinksaw_d(phase) * pinksaw(phase) ** 3
-
-    print ("pinksaw:")
-    ap = cubic_approximate(pinksaw, pinksaw_d, 0, 0.5, 1024)
-
-    print ("error:")
-    print([ap(t) - pinksaw(t) for t in linspace(0,0.5,200)])
-
-
-if False:
-    def parc(phase):
-        return sin_sum(phase, [n ** -2 for n in range(1, 100000)])
-
-    def parc_d(phase):
-        if phase==0:
-            return 0
-        return -pi * log(2 - 2 * cos(two_pi * phase))
-        #r -= two_pi * cos_sum(phase, [0] + [n ** -1 for n in range(1, 10000)])
-        #return r
-
-
-    print ("parc:")
-    ap = cubic_approximate(parc, parc_d, 0, 0.5, 1024)
-
-    #print ("error:")
-    #print([(parc(t+epsilon)-parc(t))/epsilon - parc_d(t) for t in linspace(0,0.5,200)])
-
-
-if False:
-    def cubc(phase):
-        return cos_sum(phase, [0] + [n ** -3 for n in range(1, 500000)])
-
-    def cubc_d(phase):
-        return -two_pi * sin_sum(phase, [n ** -2 for n in range(1, 500000)])
-
-
-    print ("cubc:")
-    ap = cubic_approximate(cubc, cubc_d, 0, 0.5, 1024)
-
-    print ("error:")
-    print([cubc(t) - ap(t) for t in linspace(0,0.5,200)])
-
-
-if False:
-    ss = [n ** -2.5 for n in range(1, 500000)]
-    def pink_par(phase):
-        return sin_sum(phase, ss)
-
-    cs = [0] + [n ** -1.5 for n in range(1, 500000)]
-    def pink_par_d(phase):
-        return two_pi * cos_sum(phase, cs)
-
-    print ("pink_par:")
-    ap = cubic_approximate(pink_par, pink_par_d, 0, 0.5, 1024)
-
-    print ("error:")
-    print([pink_par(t) - ap(t) for t in linspace(0,0.5,200)])
-
-
-if False:
-    ss = [n ** -3.5 for n in range(1, 500000)]
-    def pink_par(phase):
-        return sin_sum(phase, ss)
-
-    cs = [0] + [n ** -2.5 for n in range(1, 500000)]
-    def pink_par_d(phase):
-        return two_pi * cos_sum(phase, cs)
-
-    print ("pink_cub:")
-    ap = cubic_approximate(pink_par, pink_par_d, 0, 0.5, 1024)
-
-    print ("error:")
-    print([pink_par(t) - ap(t) for t in linspace(0,0.5,200)])
 
 #print([parc(t) for t in linspace(-0.5, 0.5, 100)])
 
 
 #s = [((1j * parc(220 * t) + par(220 * t)) * cis(440 * t + 10 * t * t)).real * 0.5  for t in time(2)]
 
-s = [non(220 * t) - oct0(220 * t) for t in time(1)]
+if False:
+    pitch = eased_step(center([
+        (C4, 1, 0.15), C5, G4, (Gs4, 3), (G4, 1),
+        (C4, 1), C5, G4, (Gs4, 2), (G4, 2),
+        (C4, 1), C5, G4, (Gs4, 2), (C5, 1), G4,
+        (C4, 2), (Cs4, 2), (D4, 2), (Ds4, 2),
+        (F4, 1), F5, C5, (Cs5, 3), (C5, 1),
+        (F4, 1), F5, C5, (Cs5, 2), C5,
+        (C4, 1), C5, G4, (C5, 2), (Gs4, 1), G4,
+        (Gs4, 2), (G4), (Ds4, 2), (D4, 1), (B3, 1), (C4, 4)
+    ], True), t=tempo_gen(240))
+
+    amplitude = eased_step(center([
+        (1, 4, 0.03), (0, 0.5), (1, 0.5), (0, 0.5), (1, 1.5),
+        (1, 6.5), (0, 0.5),
+        (1, 4), (0, 0.5), (1, 0.5), (0, 0.5), (1, 1.5),
+        (1, 1.1), (0, 1), 1, 0, 1, 0, 1, (0, 0.9),
+        (1, 4), (0, 0.5), (1, 0.5), (0, 0.5), (1, 1.5),
+        (1, 6.5), (0, 0.5),
+        (1, 4), (0, 0.5), (1, 0.5), (0, 0.5), (1, 1.0), (0, 0.5),
+        (1, 3), (0, 1), (1, 2.5), (0, 0.5), (1, 2), (0, 0.5), (1, 0.5), (0, 1)
+    ], True), t=tempo_gen(240))
+
+    amplitude = repeat_last(amplitude)
+
+    frequency = [mtof(p) for p in pitch]
+    phase = integrate(frequency)
+
+    s = [triangle_octave_sum(p, [1, -1, 0.5, -0.5, 0.1, -0.1]) * a for p, a in zip(phase, amplitude)]
+    s = gain(s, 0.25)
+
+set_srate(44100 * 4)
+
+s = [softsaw(220 * t, exp(-t*2)) * 0.5 for t in time(5)]
 
 
 if True:

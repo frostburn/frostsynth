@@ -19,6 +19,7 @@ def play_chunked(source, chunk_size=4096):
     finally:
         p.communicate()
 
+
 def play(source, duration=None):
     source = iter(source)
     srate = int(get_srate())

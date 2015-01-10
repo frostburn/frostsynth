@@ -228,6 +228,10 @@ def triangle(phase, bias=0.5):
         return 1.0 - (x + x) / (1.0 - bias)
 
 
+def triangle0(phase, bias=0.5):
+    return triangle(phase + 0.5 * bias, bias)
+
+
 def parangle(phase, bias=0.5):
     x = phase - floor(phase)
     bias = clip(bias, epsilon, 1.0 - epsilon)
