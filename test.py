@@ -18,6 +18,7 @@ from frostsynth.envelope import *
 from frostsynth.track import *
 from frostsynth.resample import *
 from frostsynth.polytable import *
+from frostsynth.polysequence import *
 from frostsynth.blit import *
 from frostsynth.quantize import *
 from frostsynth.numeric import *
@@ -307,10 +308,14 @@ if False:
     s = [triangle_octave_sum(p, [1, -1, 0.5, -0.5, 0.1, -0.1]) * a for p, a in zip(phase, amplitude)]
     s = gain(s, 0.25)
 
-set_srate(44100 * 4)
+#set_srate(44100 * 4)
 
-s = [softsaw(220 * t, exp(-t*2)) * 0.5 for t in time(5)]
+#s = [softsaw(220 * t, exp(-t*2)) * 0.5 for t in time(5)]
 
+#ls = LinearSequence([[0, 0], [2, 1]])
+
+cs = CubicSequence.from_flat_bezier([150,0.6666666666666666,226.66666666666669,0.3333333333333333,303.3333333333333,0.8833333333333333,380,0.8,380.00001030142226,0.5933333333333334,380.0000206028446,0.022708333333333334,380.0000309042669,0.26666666666666666,380.0000309042669,0.26666666666666666,720.6666769680891,0.17,891,0.6766666666666666])
+s = [cs(t * 1000) for t in time(2)]
 
 if True:
     print(max(s),min(s))
