@@ -172,6 +172,12 @@ $(document).ready(function(){
         }
     }
 
+    function cap_active_index(){
+        if (active_index >= points.length){
+            active_index = points.length - 1;
+        }
+    }
+
     function deactivate_curve(){
         $(curves).each(function(i, curve){
             curve.stroke({color: 'gray'});
@@ -205,11 +211,17 @@ $(document).ready(function(){
             marker.show();
             marker.fill('blue');
         });
+        cap_active_index();
     }
 
-    function new_line(){
+    function new_line(ps){
         deactivate_curve();
-        points = [[200, 200], [400, 200]];
+        if ($.isArray(ps)){
+            points = ps;
+        }
+        else {
+            points = [[200, 200], [400, 200]];
+        }
         pointss.push(points);
         polyline = draw.polyline().fill('none').stroke({width: 1});
         curves.push(polyline);
@@ -222,11 +234,17 @@ $(document).ready(function(){
             markers.push(create_marker(draw, point));
         });
         curve_index = pointss.length - 1;
+        cap_active_index();
     }
 
-    function new_bezier(){
+    function new_bezier(ps){
         deactivate_curve();
-        points = [[200, 200], [300, 300], [400, 300], [500, 200]];
+        if ($.isArray(ps)){
+            points = ps;
+        }
+        else {
+            points = [[200, 200], [300, 300], [400, 300], [500, 200]];
+        }
         pointss.push(points);
         path = draw.path().fill('none').stroke({width: 1});
         curves.push(path);
@@ -240,6 +258,7 @@ $(document).ready(function(){
             markers.push(create_marker(draw, point));
         });
         curve_index = pointss.length - 1;
+        cap_active_index();
     }
 
     function next_curve(){
@@ -295,8 +314,8 @@ $(document).ready(function(){
     $('#previous').click(previous_curve);
     $('#delete').click(delete_curve);
 
-    $('#get_data').click(function(){
-        var y = $('#snap_y').val() | 0;
+    $('#export').click(function(){
+        var snap = $('#snap_y').val() | 0;
         var unity = $('#unity').val() | 0;
         var result = '';
         $(points).each(function(i, point){
@@ -308,14 +327,68 @@ $(document).ready(function(){
             }
             result += (point[0] - zero_x) + ',';
             if (use_pitch()){
-                result += (zero_y - point[1]) / y;
+                result += (zero_y - point[1]) / snap;
             }
             else {
                 result += (zero_y - point[1]) / unity;
             }
         });
         result += ']';
-        $('#output').val(result);
+        $('#io').val(result);
+    });
+
+    $('#import').click(function(){
+        var snap = $('#snap_y').val() | 0;
+        var unity = $('#unity').val() | 0;
+        var data = $('#io').val();
+        try {
+            data = JSON.parse(data);
+            if (!$.isArray(data)){
+                alert("Not an array.");
+                return;
+            }
+        }
+        catch(err) {
+            alert("Invalid data: " + err.message);
+            return;
+        }
+        if ($('input[name=line_bezier]:checked').val() == 'line'){
+            if (data.length < 4){
+                alert("Insufficient data.");
+                return;
+            }
+            else if (data.length % 2 != 0){
+                alert("Unbalanced data.");
+                return;
+            }
+        }
+        else {
+            if (data.length < 8){
+                alert("Insufficient data.");
+                return;
+            }
+            else if (data.length % 6 != 2){
+                alert("Unbalanced data.");
+            }
+        }
+        var ps = []
+        for (var i = 0; i < data.length; i += 2){
+            var x = data[i] + zero_x;
+            var y;
+            if (use_pitch()){
+                y = zero_y - data[i + 1] * snap;
+            }
+            else {
+                y = zero_y - data[i + 1] * unity;
+            }
+            ps.push([x, y]);
+        }
+        if ($('input[name=line_bezier]:checked').val() == 'line'){
+            new_line(ps);
+        }
+        else {
+            new_bezier(ps);
+        }
     });
 
     var active_index = 0;

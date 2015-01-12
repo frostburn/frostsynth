@@ -1,12 +1,18 @@
+from math import ceil
+
+from frostsynth import get_srate
+
+
 class PolySequence(object):
-    def __init__(self, xs, coefficientss, periodic=False):
+    def __init__(self, xs, coefficientss, periodic=False, srate=None):
         self.xs = xs
         self.coefficientss = coefficientss
         self.periodic = periodic
+        self.srate = srate
 
     def __call__(self, x):
         if self.periodic:
-            raise NotImplemented
+            raise NotImplementedError
         else:
             if x < self.xs[0]:
                 return 0
@@ -20,10 +26,63 @@ class PolySequence(object):
                     sx = next_sx
                 coefficients = self.coefficientss[index]
                 mu = x - sx
-                r = 0.0
+                r = 0
                 for coefficient in coefficients:
                     r = mu * r + coefficient
                 return r
+
+    def __iter__(self):
+        srate = get_srate(self.srate)
+        dt = 1 / srate
+        x = self.xs[0]
+        prev_x = x
+        for i, target_x in enumerate(self.xs[1:]):
+            dx = x - prev_x
+            if dx < 0:
+                continue
+            samples = int(ceil((target_x - x) * srate))
+            coefficients = self.coefficientss[i]
+            if not coefficients:
+                for _ in range(samples):
+                    yield 0
+            elif len(coefficients) == 1:
+                coef = coefficients[0]
+                for _ in range(samples):
+                    yield coef
+            elif len(coefficients) == 2:
+                accumulator = coefficients[1] + coefficients[0] * dx
+                yield accumulator
+                da = coefficients[0] * dt
+                for _ in range(samples - 1):
+                    accumulator += da
+                    yield accumulator
+            elif len(coefficients) == 3:
+                accumulator0 = coefficients[2] + (coefficients[1] + coefficients[0] * dx) * dx
+                yield accumulator0
+                da = coefficients[0] * dt * dt
+                accumulator1 = (coefficients[1] + 2 * dx * coefficients[0]) * dt - da
+                da += da
+                for _ in range(samples - 1):
+                    accumulator1 += da
+                    accumulator0 += accumulator1
+                    yield accumulator0
+            elif len(coefficients) == 4:
+                accumulator0 = coefficients[3] + (coefficients[2] + (coefficients[1] + coefficients[0] * dx) * dx) * dx
+                yield accumulator0
+                dt2 = dt * dt
+                dxdt = dx * dt
+                da = coefficients[0] * dt2 * dt
+                b = coefficients[1] * dt2
+                accumulator1 = coefficients[2] * dt - b + da + (2 * coefficients[1] * dt + 3 * coefficients[0] * (dxdt - dt2)) * dx
+                da *= 6
+                accumulator2 = b + b - da + 6 * coefficients[0] * dxdt * dt
+                for _ in range(samples - 1):
+                    accumulator2 += da
+                    accumulator1 += accumulator2
+                    accumulator0 += accumulator1
+                    yield accumulator0
+            x += samples * dt
+            prev_x = target_x
 
 
 class LinearSequence(PolySequence):
@@ -41,7 +100,8 @@ class LinearSequence(PolySequence):
     def from_flat_list(cls, l):
         def g():
             i = iter(l)
-            yield (next(l), next(l))
+            while True:
+                yield (next(i), next(i))
         return cls(list(g()))
 
 

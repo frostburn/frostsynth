@@ -13,7 +13,6 @@ div {
 <body>
 <script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
 <script type="text/javascript" src="js/svg.min.js"></script>
-<script type="text/javascript" src="js/svg.draggable.min.js"></script>
 <script type="text/javascript" src="js/spline.js"></script>
 
 <h2>Spline designer</h2>
@@ -43,8 +42,11 @@ div {
 <button type="button" id="previous">Previous</button>
 <button type="button" id="next">Next</button>
 
-<button type="button" id="get_data">Get data</button>
-<input type="text" id="output"></input>
+<button type="button" id="export">Export data</button>
+<input type="text" id="io"></input>
+<button type="button" id="import">Import data as...</button>
+<input type="radio" name="line_bezier" value="line" checked>Polyline</input>
+<input type="radio" name="line_bezier" value="bezier">Polybezier</input>
 
 <div id="drawing" style="margin-top:20px"></div>
 
