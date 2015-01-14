@@ -471,7 +471,12 @@ def cis(phase):
 
 
 def duplex(func, phase, bias=0.5):
-    return func(phase) - func(phase + bias)
+    return func(phase - bias * 0.5) - func(phase + bias * 0.5)
+
+
+def duplexn(func, phase, bias=0.5):
+    bias = clip(bias, epsilon, 1 - epsilon)
+    return (func(phase - bias * 0.5) - func(phase + bias * 0.5)) / (0.5 - abs(0.5 - bias)) * 0.25
 
 
 def raised(func, phase, vmin=0.0, vmax=1.0):

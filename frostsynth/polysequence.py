@@ -81,8 +81,51 @@ class PolySequence(object):
                     accumulator1 += accumulator2
                     accumulator0 += accumulator1
                     yield accumulator0
+            else:
+                t = x
+                for _ in range(samples):
+                    yield self(t)
+                    t += dt
             x += samples * dt
             prev_x = target_x
+
+    def extend_to(self, value=0):
+        if value < self.xs[0]:
+            self.xs.insert(0, value)
+            self.coefficientss.insert(0, ())
+        elif value > self.xs[-1]:
+            self.xs.append(value)
+            self.coefficientss.append(())
+
+    def extend(self, other):
+        delta_x = self.xs[-1] - other.xs[0]
+        self.xs[-1:] = [x + delta_x for x in other.xs]
+        self.coefficientss.extend(other.coefficientss)
+
+    def scale_y(self, multiplier):
+        self.coefficientss = [tuple(multiplier * coefficient for coefficient in coefficients) for coefficients in self.coefficientss]
+
+    def scale_x(self, multiplier):
+        self.xs = [multiplier * x for x in self.xs]
+        self.coefficientss = [tuple(multiplier ** (i - len(coefficients) + 1) * coefficient for i, coefficient in enumerate(coefficients)) for coefficients in self.coefficientss]
+
+    def differentiate(self):
+        self.coefficientss = [tuple(coefficient * (len(coefficients) - 1 - i) for i, coefficient in enumerate(coefficients[:-1])) for coefficients in self.coefficientss]
+
+    def integrate(self):
+        dc = 0
+        for index, coefficients in enumerate(self.coefficientss[:]):
+            delta_x = self.xs[index + 1] - self.xs[index]
+            new_coefficients = []
+            for i, coefficient in enumerate(reversed(coefficients)):
+                new_coefficients.insert(0, coefficient / (i + 1))
+            new_coefficients.append(dc)
+            dc = sum(coefficient * delta_x ** i for i, coefficient in enumerate(reversed(new_coefficients)))
+            self.coefficientss[index] = tuple(new_coefficients)
+
+    @classmethod
+    def constant(_, duration, value, start=0):
+        return PolySequence([start, start + duration], [(value,)])
 
 
 class LinearSequence(PolySequence):

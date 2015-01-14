@@ -311,11 +311,29 @@ if False:
 #set_srate(44100 * 4)
 
 #s = [softsaw(220 * t, exp(-t*2)) * 0.5 for t in time(5)]
+if False:
+    ls = LinearSequence.from_flat_list([0,0,80,0,86,5,160,5,167,9,240,9,246,12,660,12])
+    ls.scale_x(1 / 160)
+    cs = CubicSequence.from_flat_bezier([240,0,373.6666666666667,0.08,507.33333333333337,0.08333333333333333,641,0.9933333333333333])
+    cs.scale_x(1 / 160)
+    cs.extend_to_zero()
+    f = [mtof(C4 + l + c * sine(t * 6)) for t, l, c in timed(ls, cs)]
+    s = [cub(p) for p in integrate(f)]
 
-ls = LinearSequence.from_flat_list([0,0,80,0,86,5,160,5,167,9,240,9,246,12,660,12])
-cs = CubicSequence.from_flat_bezier([240,0,373.6666666666667,0.08,507.33333333333337,0.08333333333333333,641,0.9933333333333333])
-f = [mtof(C4 + ls(t * 160) + cs(t * 160) * sine(t * 6)) for t in time(3)]
-s = [cub(p) for p in integrate(f)]
+ls = LinearSequence.from_flat_list([0,-8,80,-8,85,4,120,4,124,0,160,0,165,-1,240,-1,246,-3,320,-3,326,-1,400,-1,406,0,480,0,480,-8,560,-8,563,4,600,4,605,0,640,0,644,-1,720,-1,725,-3,800,-3,805,-1,880,-1,885,7,960,7])
+ls1 = LinearSequence.from_flat_list([0,-8,80,-8,85,4,120,4,124,0,160,0,165,-1,240,-1,246,-3,320,-3,326,-1,400,-1,406,0,480,0,486,-1,960,-1])
+ls.extend(ls1)
+ls.scale_x(1 / 240)
+
+a_ls = LinearSequence.constant(960, 1)
+a_ls1 = LinearSequence.from_flat_list([0,1,560,1,575,0,636,0,641,1,760,1,773,0,960,0])
+a_ls.extend(a_ls1)
+a_ls.scale_x(1 / 240)
+#ls2 = LinearSequence.from_flat_list([0,-8,80,-8,80,7,160,7,160,4,240,4,240,0,320,0,320,-1,400,-1,400,0,480,0,480,-1,660,-1])
+#ls2.scale_x(1 / 240)
+#ls.extend(ls2)
+f = (mtof(C4 + p) for p in ls)
+s = [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.05 + 0.5), [-0.6, 1, 0.5, 0.2, 0.1]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)]
 
 if True:
     print(max(s),min(s))

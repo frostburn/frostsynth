@@ -125,7 +125,7 @@ def time_gen(t0=0.0, srate=None):
     return (t0 + i * dt for i in count())
 
 
-def timed(*iterables, start=0, stop=None, srate=None):
+def timed(*iterables, start=None, stop=None, srate=None):
     if start is None and stop is None:
         return zip(*((time_gen(srate=srate),) + iterables))
     else:

@@ -10,9 +10,11 @@ $(document).ready(function(){
     var zero_line = draw.line(0, zero_y, draw.width(), zero_y).stroke({color: '#252', width: 3});
     var plus_one_line = draw.line().stroke({color: '#f88', width: 2});
     var minus_one_line = draw.line().stroke({color: '#88f', width: 2});
+    var control_lines = draw.path().fill('none').stroke({color: 'green', width: 1});
+    var curve_group = draw.group();
+    var point_markers = draw.group();
     var axis_label = draw.group();
     var active_key = axis_label.rect().fill('#ccc');
-    var control_lines = draw.path().fill('none').stroke({color: 'green', width: 1});
 
     function update_grid(){
         var x = $('#snap_x').val();
@@ -109,7 +111,7 @@ $(document).ready(function(){
 
     function create_marker(parent, point){
         var circle = parent.circle(10).move(point[0] - 5, point[1] - 5).fill('blue');
-        axis_label.front();
+        //axis_label.front();
         return circle;
     }
 
@@ -223,7 +225,7 @@ $(document).ready(function(){
             points = [[200, 200], [400, 200]];
         }
         pointss.push(points);
-        polyline = draw.polyline().fill('none').stroke({width: 1});
+        polyline = curve_group.polyline().fill('none').stroke({width: 1});
         curves.push(polyline);
         curve_type = 'polyline';
         curve_types.push(curve_type);
@@ -231,7 +233,7 @@ $(document).ready(function(){
         markers = [];
         markerss.push(markers);
         $(points).each(function(i, point){
-            markers.push(create_marker(draw, point));
+            markers.push(create_marker(point_markers, point));
         });
         curve_index = pointss.length - 1;
         cap_active_index();
@@ -246,7 +248,7 @@ $(document).ready(function(){
             points = [[200, 200], [300, 300], [400, 300], [500, 200]];
         }
         pointss.push(points);
-        path = draw.path().fill('none').stroke({width: 1});
+        path = curve_group.path().fill('none').stroke({width: 1});
         curves.push(path);
         curve_type = 'bezier';
         curve_types.push(curve_type);
@@ -255,7 +257,7 @@ $(document).ready(function(){
         markers = [];
         markerss.push(markers);
         $(points).each(function(i, point){
-            markers.push(create_marker(draw, point));
+            markers.push(create_marker(point_markers, point));
         });
         curve_index = pointss.length - 1;
         cap_active_index();
@@ -280,6 +282,7 @@ $(document).ready(function(){
     }
 
     function delete_curve(){
+        deactivate_curve();
         if (curve_type == 'polyline'){
             polyline.remove();
         }
@@ -492,13 +495,27 @@ $(document).ready(function(){
             y = snap_y(y);
         }
         if (active_index > 0){
-            if (x < points[active_index - 1][0]){
-                x = points[active_index - 1][0];
+            if (curve_type == 'polyline' || control_point_active()){
+                if (x < points[active_index - 1][0]){
+                    x = points[active_index - 1][0];
+                }
+            }
+            else {
+                if (x < points[active_index - 3][0]){
+                    x = points[active_index - 3][0]
+                }
             }
         }
         if (active_index < points.length - 1){
-            if (x > points[active_index + 1][0]){
-                x = points[active_index + 1][0];
+            if (curve_type == 'polyline' || control_point_active()){
+                if (x > points[active_index + 1][0]){
+                    x = points[active_index + 1][0];
+                }
+            }
+            else {
+                if (x > points[active_index + 3][0]){
+                    x = points[active_index + 3][0]
+                }
             }
         }
         points[active_index] = [x, y];
@@ -530,7 +547,13 @@ $(document).ready(function(){
                 min_distance = distance;
             }
         });
-        markers[active_index].fill('red');
+        if (control_point_active()){
+            markers[active_index].fill('lime');
+        }
+        else {
+            markers[active_index].fill('red');
+        }
+        markers[active_index].front();
     }
 
     function create_point(event){
@@ -543,14 +566,14 @@ $(document).ready(function(){
             $(points).each(function(i, point){
                 if (point[0] > x){
                     points.splice(i, 0, [x, y]);
-                    markers.splice(i, 0, create_marker(draw, [x, y]));
+                    markers.splice(i, 0, create_marker(point_markers, [x, y]));
                     active_index = i;
                     return false;
                 }
             });
             if (x >= points[points.length - 1][0]){
                 points.push([x, y]);
-                markers.push(create_marker(draw, [x, y]));
+                markers.push(create_marker(point_markers, [x, y]));
                 active_index = points.length - 1;
             }
         }
@@ -561,7 +584,7 @@ $(document).ready(function(){
                 var p1 = [x + l, y];
                 var p2 = [points[0][0] - l, points[0][1]];
                 points.splice(0, 0, p0, p1, p2);
-                markers.splice(0, 0, create_marker(draw, p0), create_marker(draw, p1), create_marker(draw, p2));
+                markers.splice(0, 0, create_marker(point_markers, p0), create_marker(point_markers, p1), create_marker(point_markers, p2));
                 active_index = 0;
             }
             else if (x > points[points.length - 1][0]){
@@ -571,7 +594,7 @@ $(document).ready(function(){
                 var p2 = [x - l, y];
                 var p3 = [x, y];
                 points.splice(i + 1, 0, p1, p2, p3);
-                markers.splice(i + 1, 0, create_marker(draw, p1), create_marker(draw, p2), create_marker(draw, p3));
+                markers.splice(i + 1, 0, create_marker(point_markers, p1), create_marker(point_markers, p2), create_marker(point_markers, p3));
                 active_index = i + 1;
             }
             else {
@@ -587,7 +610,7 @@ $(document).ready(function(){
                         points[i - 1][0] = point[0] - l1;
                         update_marker(i - 1);
                         points.splice(i - 1, 0, p2, p3, p4);
-                        markers.splice(i - 1, 0, create_marker(draw, p2), create_marker(draw, p3), create_marker(draw, p4));
+                        markers.splice(i - 1, 0, create_marker(point_markers, p2), create_marker(point_markers, p3), create_marker(point_markers, p4));
                         active_index = i;
                         return false;
                     }
@@ -602,7 +625,7 @@ $(document).ready(function(){
         if (points.length <= 2){
             return;
         }
-        if (control_point_active() || points.length <= 4){
+        if (curve_type == 'bezier' && (control_point_active() || points.length <= 4)){
             return;
         }
         if (curve_type == 'polyline'){
@@ -641,6 +664,9 @@ $(document).ready(function(){
     }
 
     draw.on('mousedown', function(event){
+        if (event.button != 0){
+            return;
+        }
         event.preventDefault();
         add_mode = event.ctrlKey;
         delete_mode = event.shiftKey;
@@ -672,4 +698,13 @@ $(document).ready(function(){
         }
         balance_control_points(event);
     });
+
+    /* TODO: Zooming
+    $('#drawing').mousewheel(function(event){
+        event.preventDefault();
+        var viewbox = draw.viewbox();
+        var z = event.deltaY;
+        draw.viewbox({x: 0, y: 0, width: viewbox.width * Math.pow(0.9, z), height: viewbox.height * Math.pow(0.9, z)});
+    });
+    */
 });
