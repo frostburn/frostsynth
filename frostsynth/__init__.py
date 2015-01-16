@@ -129,6 +129,10 @@ def timed(*iterables, start=None, stop=None, srate=None):
     if start is None and stop is None:
         return zip(*((time_gen(srate=srate),) + iterables))
     else:
+        if start is None:
+            start = 0
+        if stop is None:
+            raise ValueError("stop must be supplied if start is")
         return timeslice_gen(zip(*((time_gen(srate=srate),) + iterables)), start, stop)
 
 

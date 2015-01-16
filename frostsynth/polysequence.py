@@ -1,4 +1,5 @@
 from math import ceil
+from itertools import dropwhile
 
 from frostsynth import get_srate
 
@@ -9,6 +10,10 @@ class PolySequence(object):
         self.coefficientss = coefficientss
         self.periodic = periodic
         self.srate = srate
+        self._prune_coefficientss()
+
+    def _prune_coefficientss(self):
+        self.coefficientss = [tuple(dropwhile(lambda x: x == 0, coefficients)) for coefficients in self.coefficientss]
 
     def __call__(self, x):
         if self.periodic:

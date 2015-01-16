@@ -292,6 +292,18 @@ def cheb_sum(x, coefs):
         return bk1 - x * bk
 
 
+def s_odd_sum(x, coefs):
+    if not coefs:
+        return 0
+    else:
+        s2 = 2 - 4 * x * x
+        bk = 0
+        bk1 = 0
+        for coef in reversed(coefs):
+            bk1, bk = coef + s2 * bk1 - bk, bk1
+        return x * (bk1 + bk)
+
+
 def triangle_octave_sum(x, coefs):
     if not coefs:
         return 0

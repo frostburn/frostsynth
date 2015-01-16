@@ -60,6 +60,29 @@ def decay2_env(source, amplitude, t_max, decay=None, srate=None):
     return [s * e for s, e in zip(source, envelope)]
 
 
+def gaussian_envelope_gen(amplitude, decay, t_max=0, srate=None):
+    """
+    Generates amplitude * exp(-((t - t_max) * decay) ** 2)
+    """
+    dt = 1 / get_srate(srate)
+    q = exp(-(decay * dt) ** 2)
+    y_0 = amplitude * exp(-(decay * t_max) ** 2)
+    y_1 = exp(2 * decay ** 2 * t_max * dt) / q
+    q *= q
+    while True:
+        yield y_0
+        y_1 *= q
+        y_0 *= y_1
+
+def gaussian_env_gen(source, amplitude, decay, t_max=0, srate=None):
+    envelope = gaussian_envelope_gen(amplitude, decay, t_max, srate)
+    return (s * e for s, e in zip(source, envelope))
+
+def gaussian_env(source, amplitude, decay, t_max=0, srate=None):
+    envelope = gaussian_envelope_gen(amplitude, decay, t_max, srate)
+    return [s * e for s, e in zip(source, envelope)]
+
+
 def hold_release_env(source, hold, release, full=False, srate=None):
     srate = get_srate(srate)
     buf = timeslice(source, hold + release, srate=srate)

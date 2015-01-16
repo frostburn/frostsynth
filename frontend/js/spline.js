@@ -1,5 +1,9 @@
 $(document).ready(function(){
     var draw = SVG('drawing').size($('#drawing').width() - 20, 801);
+    var draw_width = draw.width();
+    var draw_height = draw.height();
+    var zoom = 0;
+
     var zero_x = 50;
     var zero_y = 400;
 
@@ -459,13 +463,7 @@ $(document).ready(function(){
     }
 
     function control_point_active(){
-        if (curve_type == 'polyline'){
-            return false;
-        }
-        else{
-            var t = active_index % 3;
-            return t == 1 || t == 2;
-        }
+        return (curve_type == 'bezier' && (active_index % 3) != 0);
     }
 
     function balance_control_points(event){
@@ -699,12 +697,43 @@ $(document).ready(function(){
         balance_control_points(event);
     });
 
-    /* TODO: Zooming
     $('#drawing').mousewheel(function(event){
         event.preventDefault();
-        var viewbox = draw.viewbox();
-        var z = event.deltaY;
-        draw.viewbox({x: 0, y: 0, width: viewbox.width * Math.pow(0.9, z), height: viewbox.height * Math.pow(0.9, z)});
+        if (event.ctrlKey && event.shiftKey){
+            var shift_x = $('#snap_x').val() * event.deltaX;
+            var shift_y = $('#snap_y').val() * event.deltaX;
+            $(points).each(function(i, point){
+                point[0] -= shift_x;
+                point[1] += shift_y;
+                update_marker(i);
+            });
+            update_curve();
+        }
+        else if (event.ctrlKey){
+            var shift = $('#snap_y').val() * event.deltaY;
+            $(points).each(function(i, point){
+                point[1] -= shift;
+                update_marker(i);
+            });
+            update_curve();
+        }
+        else if (event.shiftKey){
+            var shift = $('#snap_x').val() * event.deltaX;
+            $(points).each(function(i, point){
+                point[0] -= shift;
+                update_marker(i);
+            });
+            update_curve();
+        }
+        else if (false){
+            zoom += event.deltaY;
+            if (zoom < 0){
+                zoom = 0;
+            }
+            var zoom_factor = Math.pow(0.9, zoom);
+            var view_width = draw_width * zoom_factor;
+            var view_height = draw_height * zoom_factor;
+            draw.viewbox({x: 0, y: 0, width: view_width, height: view_height});
+        }
     });
-    */
 });
