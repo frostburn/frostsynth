@@ -338,56 +338,64 @@ if False:
     s1 = [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.05 + 0.55), [-0.6, 1, -0.5, 0.2, 0.1, -0.05, -0.03])  * 0.2 * a for t, p, a in timed(integrate(f), a_ls)]
 
 # Second part
-ls = LinearSequence.from_flat_list([0,4,240,4,240,2,400,2,400,4,480,4])
-ls1 = LinearSequence.from_flat_list([0,4,240,4,240,5,398,5,400,4,480,4])
-ls2 = LinearSequence.from_flat_list([0,4,240,4,240,2,320,2,324,0,400,0,403,2,480,2,485,-1,960,-1])
-ls.extend(ls1)
-ls.extend(ls2)
-ls.scale_x(1 / 240)
+if False:
+    ls = LinearSequence.from_flat_list([0,4,240,4,240,2,400,2,400,4,480,4])
+    ls1 = LinearSequence.from_flat_list([0,4,240,4,240,5,398,5,400,4,480,4])
+    ls2 = LinearSequence.from_flat_list([0,4,240,4,240,2,320,2,324,0,400,0,403,2,480,2,485,-1,960,-1])
+    ls.extend(ls1)
+    ls.extend(ls2)
+    ls.scale_x(1 / 240)
 
-a_ls = LinearSequence.from_flat_list([0,0,80,0,85,1,140,1,144,0,160,0,163,1,220,1,225,0,240,0,243,1,300,1,303,0,320,0,323,1,380,1,384,0,400,0,403,1,460,1,464,0,480,0])
-a_ls.extend(a_ls)
-a_ls1 = LinearSequence.from_flat_list([0,0,80,0,85,1,140,1,144,0,160,0,163,1,220,1,225,0,240,0,243,1,620,1,625,0,640,0,644,1,760,1,783,0,960,0])
-a_ls.extend(a_ls1)
-a_ls.scale_x(1 / 240)
+    a_ls = LinearSequence.from_flat_list([0,0,80,0,85,1,140,1,144,0,160,0,163,1,220,1,225,0,240,0,243,1,300,1,303,0,320,0,323,1,380,1,384,0,400,0,403,1,460,1,464,0,480,0])
+    a_ls.extend(a_ls)
+    a_ls1 = LinearSequence.from_flat_list([0,0,80,0,85,1,140,1,144,0,160,0,163,1,220,1,225,0,240,0,243,1,620,1,625,0,640,0,644,1,760,1,783,0,960,0])
+    a_ls.extend(a_ls1)
+    a_ls.scale_x(1 / 240)
 
-f = (mtof(C4 + p) for p in ls)
-s = [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.07 + 0.6), [-0.6, 1, 0.5, 0.2, 0.1, -0.05, -0.03]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)]
+    f = (mtof(C4 + p) for p in ls)
+    s = [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.07 + 0.6), [-0.6, 1, 0.5, 0.2, 0.1, -0.05, -0.03]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)]
 
-ls = LinearSequence.from_flat_list([0,0,240,0,240,-1,400,-1,400,0,480,0])
-ls1 = LinearSequence.from_flat_list([0,0,240,0,240,2,400,2,400,0,480,0])
-ls2 = LinearSequence.from_flat_list([0,0,240,0,240,-1,320,-1,323,-3,400,-3,405,-1,480,-1,485,-5,960,-5])
-ls.extend(ls1)
-ls.extend(ls2)
-ls.scale_x(1 / 240)
+    ls = LinearSequence.from_flat_list([0,0,240,0,240,-1,400,-1,400,0,480,0])
+    ls1 = LinearSequence.from_flat_list([0,0,240,0,240,2,400,2,400,0,480,0])
+    ls2 = LinearSequence.from_flat_list([0,0,240,0,240,-1,320,-1,323,-3,400,-3,405,-1,480,-1,485,-5,960,-5])
+    ls.extend(ls1)
+    ls.extend(ls2)
+    ls.scale_x(1 / 240)
 
-f = (mtof(C4 + p) for p in ls)
-s = add(s, [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.07 + 0.6), [-0.6, 1, 0.5, 0.2, 0.1, -0.05, -0.03]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)])
+    f = (mtof(C4 + p) for p in ls)
+    s = add(s, [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.07 + 0.6), [-0.6, 1, 0.5, 0.2, 0.1, -0.05, -0.03]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)])
 
-ls = LinearSequence.constant(480, A3)
-ls.extend(ls)
-ls.extend(LinearSequence.constant(480, A3))
-ls.extend(LinearSequence.constant(480, G3))
-ls.scale_x(1 / 240)
+    ls = LinearSequence.constant(480, A3)
+    ls.extend(ls)
+    ls.extend(LinearSequence.constant(480, A3))
+    ls.extend(LinearSequence.constant(480, G3))
+    ls.scale_x(1 / 240)
 
-a_ls = LinearSequence.from_flat_list([0,0,4,1,480,0])
-a_ls.extend(a_ls)
-a_ls.extend(LinearSequence.from_flat_list([0,0,4,1,480,0,484,1,640,0.4666666666666667,644,1,960,0]))
-a_ls.scale_x(1 / 240)
+    a_ls = LinearSequence.from_flat_list([0,0,4,1,480,0])
+    a_ls.extend(a_ls)
+    a_ls.extend(LinearSequence.from_flat_list([0,0,4,1,480,0,484,1,640,0.4666666666666667,644,1,960,0]))
+    a_ls.scale_x(1 / 240)
 
-f = (mtof(p) for p in ls)
-s = add(s, [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.07 + 0.6), [-0.6, 1, 0.5, 0.2, 0.1, -0.05, -0.03]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)])
+    f = (mtof(p) for p in ls)
+    s = add(s, [cheb_sum(duplexn(cub, p, sine(t * 3) * 0.07 + 0.6), [-0.6, 1, 0.5, 0.2, 0.1, -0.05, -0.03]) * 0.2 * a for t, p, a in timed(integrate(f), a_ls)])
 
-s = gain(s, 0.6)
+    s = gain(s, 0.6)
 
-s = s1 + s
+    s = s1 + s
 
-#s = [exp(-((t - 1) * 10) ** 2) * 0 + g for t, g in timed(gaussian_envelope_gen(1, 10, 1), stop=2)]
+#s = spline_snow_gen([1000 for t in time(2)], variability=0.9)
+
+ns = NaturalSpline([(0, 0), (1, 1), (1.5, 0.5), (2, -1), (3.5, 0)])
+ns.differentiate()
+ns.differentiate()
+
+
+s = gain(ns, 0.125)
 
 if True:
-    print(max(s),min(s))
-
     s = dither(s)
+
+    print(max(s),min(s))
 
     play(s)
 

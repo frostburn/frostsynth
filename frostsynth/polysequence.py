@@ -154,22 +154,23 @@ class LinearSequence(PolySequence):
 
 
 class CubicSequence(PolySequence):
-    def __init__(self, data, smooth=False):
+    def __init__(self, data):
         xs = []
         coefficientss = []
         for d0, d1 in zip(data, data[1:]):
             x0 = d0[0]
             x1 = d1[0]
-            l = (x0 - x1)
-            if l < 0:
+            # TODO: Fix the sign
+            delta_x = (x0 - x1)
+            if delta_x < 0:
                 y0 = d0[1]
                 s0 = d0[3]
 
                 y1 = d1[1]
                 s1 = d1[2]
 
-                a = ((s0 + s1) * (x0 - x1) - 2 * y0 + 2 * y1) / l ** 3
-                b = ((2 * s0 + s1) * l - 3 * y0 + 3 * y1) / l ** 2
+                a = ((s0 + s1) * (x0 - x1) - 2 * y0 + 2 * y1) / delta_x ** 3
+                b = ((2 * s0 + s1) * delta_x - 3 * y0 + 3 * y1) / delta_x ** 2
                 coefficientss.append((a, b, s0, y0))
             else:
                 coefficientss.append((d0[1],))
@@ -194,3 +195,43 @@ class CubicSequence(PolySequence):
         s1 = (l[-1] - l[-3]) / d1 if d1 != 0 else 0
         data.append((l[-2], l[-1], s1))
         return cls(data)
+
+
+class NaturalSpline(CubicSequence):
+    def __init__(self, data):
+        # Separate data
+        xs, ys = zip(*data)
+
+        # Build the tridiagonal matrix for solving the derivatives
+        i_delta_x = 1 / (xs[1] - xs[0])
+        a = [0]
+        b = [i_delta_x + i_delta_x]
+        c = [i_delta_x]
+        d = [3 * (ys[1] - ys[0]) * i_delta_x * i_delta_x]
+        for i in range(1, len(data) - 1):
+            i_delta_x0 = 1 / (xs[i] - xs[i - 1])
+            i_delta_x1 = 1 / (xs[i + 1] - xs[i])
+            a.append(i_delta_x0)
+            b.append(2 * (i_delta_x0 + i_delta_x1))
+            c.append(i_delta_x1)
+            d.append(3 * ((ys[i] - ys[i - 1]) * i_delta_x0 * i_delta_x0 + (ys[i + 1] - ys[i]) * i_delta_x1 * i_delta_x1))
+        i_delta_x = 1 / (xs[-1] - xs[-2])
+        a.append(i_delta_x)
+        b.append(i_delta_x + i_delta_x)
+        d.append(3 * (ys[-1] - ys[-2]) * i_delta_x * i_delta_x)
+
+        # Solve the equations...
+        c[0] /= b[0]
+        for i in range(1, len(c)):
+            c[i] /= (b[i] - a[i] * c[i - 1])
+        d[0] /= b[0]
+        for i in range(1, len(d)):
+            d[i] = (d[i] - a[i] * d[i - 1]) / (b[i] - a[i] * c[i -1])
+
+        # ...by back substitution.
+        ss = [d[-1]]
+        for i in range(len(d) - 2, -1, -1):
+            ss.insert(0, d[i] - c[i] * ss[0])
+
+        data = [(x, y, s, s) for x, y, s in zip(xs, ys, ss)]
+        super().__init__(data)
