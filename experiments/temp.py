@@ -82,3 +82,98 @@ bs = float_list_to_bytes([1,2,3,6.45,23.231])
 import zlib
 
 print (hex(int.from_bytes(zlib.compress(bs, level=9), 'big')))
+
+
+def smooth_noise(frequency, order=3, leak_constant=0.99, srate=None):
+    srate = get_srate(srate)
+    dt = 1.0 / srate
+    frequency = to_iterable(frequency)
+
+    ns = [0] * order
+    rn = range(order)
+    y = [0] * (order + 1)
+    r = range(order)
+
+    target = 1.0
+    phase = target
+    while True:
+        if phase >= target:
+            ns.insert(0, random() - 0.5)
+            for i in rn:
+                ns[i + 1] -= ns[i]
+            n = ns.pop()
+            phase = phase % target
+            target = random() + random()
+        y[0] = n
+        for i in r:
+            y[i + 1] = y[i] + y[i + 1] * leak_constant
+        yield y[-1]
+
+        phase += dt * next(frequency)
+
+
+"""
+    void linear_sequence_to_list(double xs[], size_t len_xs, double css[], size_t len_css, double srate, double result[])
+    {
+        size_t i, j, samples;
+        double dx, l, a, b, accumulator, da;
+        size_t k = 0;
+        double dt = 1.0 / srate;
+        double x = xs[0];
+
+        for (i = 0; i < len_xs - 1; i++){
+            dx = x - xs[i];
+            l = xs[i + 1] - x;
+            if (l <= 0){
+                continue;
+            }
+            if (i < len_xs - 2){
+                samples = (size_t) ceil(l * srate);
+            }
+            else {
+                samples = (size_t) floor(l * srate);
+            }
+            a = css[2 * i];
+            b = css[2 * i + 1];
+            accumulator = dx * a + b;
+            da = a * dt;
+            for (j = 0; j < samples; j++){
+                result[k++] = accumulator;
+                accumulator += da;
+            }
+            x += samples * dt;
+        }
+    }
+"""
+
+def linear_sequence_to_list(ls):
+    xs = ffi.new("double[]", ls.xs)
+    css = ffi.new("double[]", list(chain(*ls.coefficientss)))
+    result = ffi.new("double[]", ls.samples())
+    srate = get_srate(ls.srate)
+    C.linear_sequence_to_list(xs, len(xs), css, len(css), srate, result)
+    return list(result)
+
+
+def snowy_gen(frequency, vmin=-1.0, vmax=1.0, variability=0.0, srate=None):
+    srate = get_srate(srate)
+    dt = 1 / srate
+    frequency = to_iterable(frequency)
+
+    y1 = uniform(vmin=vmin, vmax=vmax)
+    y2 = uniform(vmin=vmin, vmax=vmax)
+    phase = srate
+    for sample in frequency:
+        if phase >= srate:
+            y0, y1 = y1, y2
+            y2 = uniform(vmin=vmin, vmax=vmax)
+            phase = phase % srate
+            dp0 = (y1 - y0) * dt
+            dp = (y2 - y1) * dt
+        # The idea is to add analytic zeroes with delay filters to lowpass the noise
+        if 3 * phase < srate:
+            d3 = y0 + dp0 * (phase + 2 * srate / 3)
+        else:
+            d3 = y1 + dp * (phase - srate / 3)
+        yield (y1 + dp * phase + d3) * 0.5
+        phase += sample

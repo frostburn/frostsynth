@@ -56,3 +56,22 @@ def resampler3_gen(source, ratio):
             sample2 = sample3
             sample3 = next(source)
             source_index += 1
+
+
+def analytic_resample1(f, frequency, sub_samples=1, variability=0, srate=None):
+    dt = 1 / get_srate(srate)
+    ratio = 1 / sub_samples
+    frequency = to_iterable(frequency)
+    y1 = f(0)
+    target = 0
+    phase = target
+    for sample in frequency:
+        if phase >= target:
+            y0 = y1
+            y1 = f(phase)
+            prev_target = target
+            d_target = (1.0 + (random() - 0.5) * variability) * ratio
+            target += d_target
+            dp = (y1 - y0) / d_target
+        yield y0 + dp * (phase - prev_target)
+        phase += sample * dt

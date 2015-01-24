@@ -27,13 +27,13 @@ def noisy_phases_gen(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5,
     return [(lambda s: (p + s for p in phase))(shift) for phase, shift in zip(phases, shifts)]
 
 
-def noisy_phases(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5, count=6):
-    shifts = uniform(count, 0, 1)
+def noisy_phases(frequency, spread=0.25, noise_spread=1.0, noise_speed=0.5, count=6):
+    frequency = to_sequence(frequency)
     phases = []
-    for s in linspace(-spread, spread, count):
-        noise = snow3([f * noise_speed for f in frequency], variability=0.5)
-        phases.append(integrate(f * itofm(s + n * noise_spread) for f, n in zip(frequency, noise)))
-    return [[p + s for p in phase] for phase, s in zip(phases, shifts)]
+    for s, shift in zip(linspace(-spread, spread, count), uniform(count, 0, 1)):
+        noise = linear_noise(f * noise_speed for f in frequency)
+        phases.append(integrate((f * itofm(s + n * noise_spread) for f, n in zip(frequency, noise)), shift))
+    return phases
 
 
 def noisy_saw(frequency, spread=0.25, noise_spread=0.25, noise_speed=0.5, count=6):

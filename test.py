@@ -23,6 +23,8 @@ from frostsynth.blit import *
 from frostsynth.quantize import *
 from frostsynth.numeric import *
 from frostsynth.sequence import *
+from frostsynth.sinesequence import *
+from frostsynth.interpolation import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
 from frostsynth.ffi import malloc_copy, precycloid, j0, j1, jn, y0, y1, yn
@@ -385,12 +387,70 @@ if False:
 
 #s = spline_snow_gen([1000 for t in time(2)], variability=0.9)
 
-ns = NaturalSpline([(0, 0), (1, 1), (1.5, 0.5), (2, -1), (3.5, 0)])
-ns.differentiate()
-ns.differentiate()
+#ns = ConstantSequence([((i + random() * 0.5) * 0.001, uniform()) for i in range(2000)])
 
+#s = gain(ns, 0.25)
 
-s = gain(ns, 0.125)
+#s = CubicSequence([((i + random() * 0.5) / 1000, 2 * random() - 1, random() - random()) for i in range(1000)])
+
+#s = spline_snow_gen(linspace_t(1000, 1000, 2), variability=0.5)
+if False:
+    s = zero_t(2)
+    f = constant_t(220, 2)
+
+    for p in noisy_phases(f):
+        s = add(s, map(par, p))
+
+    s = gain(s, 0.09)
+
+#ss = SineSpline.from_points([((i + random() * 0.125) / 1000, random() - 0.5) for i in range(1000)])
+
+#s = [ss(t) for t in time(1)]
+#Splines of sines
+#plot(sin(2*x) - 2 * sin(x))
+
+#print(l.xs)
+
+#s.differentiate()
+#s.differentiate()
+#s.differentiate()
+
+#s = snow3_gen(linspace_t(2000, 200, 200))
+
+#s = gain(s, 0.9/max(map(abs, s)))
+
+#print(len(s))
+
+#s = linear_noise(2000, 10)
+
+#f = linspace_t(55, 110, 3)
+#s = zero_t(3)
+#for p in noisy_phases(f):
+#    s = add(s, map(pink_saw, p))
+
+#y = []
+#for f in linspace(40, 10000, 100):
+#    s = parabolic_noise(f, 5)
+#    y.append(max(map(abs, s)))
+
+#print(y)
+#s = list(snow1_gen(linspace_t(1000, 1000, 10)))
+#s = add(s, dynamic_delay3(s, srate / 3000))
+#s = add(s, dynamic_delay3(s, srate / 5000))
+#s = add(s, dynamic_delay3(s, srate / 7000))
+#s = gain(s, 0.1)
+
+#(1 - x**2)**2
+
+#s = linear_noise2(linspace_t(300, 3000, 10))
+
+#i = bl_interpolate(gauss(1000))
+
+#s = [i(t * 1000) for t in time(1)]
+
+s = sin_snow_gen(linspace_t(880, 880 * 2, 2), linspace_t(-1, 1, 2))
+
+s = gain(s, 0.5)
 
 if True:
     s = dither(s)

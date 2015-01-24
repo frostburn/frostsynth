@@ -305,3 +305,21 @@ def f(source):
 s = list(f([sine(220 * t) * exp(-t) + sine(440 * t) * exp(-2 * t) for t in time(4)]))
 
 s = gain(s, 0.5)
+
+
+def hollow_resonator():
+    y0 = uniform()
+    y1 = uniform()
+    y2 = uniform()
+    y_0 = y1 - y0
+    y_1 = y2 - y1
+    y = 0
+    y_ = 0
+    while True:
+        d = y_1 - y_0 - y_ * 0.01 - copysign(sqrt(abs(y)), y)
+        for _ in range(randint(20, 40)):
+            yield y
+            y = y + y_
+            y_ = y_ + d
+        y1, y0 = uniform(), y1
+        y_1, y_0 = y1 - y0, y_1

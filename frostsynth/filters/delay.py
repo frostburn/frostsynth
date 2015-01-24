@@ -1,3 +1,4 @@
+from math import floor
 from itertools import *
 
 from frostsynth import *
@@ -96,8 +97,7 @@ def schroeder(source, k, g=1.0):
 
 
 def schroeder_t(source, duration, g=1.0, srate=None):
-    if srate is None:
-        srate = get_srate()
+    srate = get_srate(srate)
     return schroeder(source, int(srate * duration), g)
 
 
@@ -118,3 +118,54 @@ def thiran_delay2(source, delta, fillvalue=0.0):
     a1 = 4.0 / (1.0 + d) - 2.0
     a2 = d * (d - 1.0) / (2.0 + d * (3.0 + d))
     return delay(biquad(source, a0, a1, a2, a2, a1, a0), k, fillvalue)
+
+
+def thiran_delay2_t(source, duration, fillvalue=0.0, srate=None):
+    srate = get_srate(srate)
+    return thiran_delay2(source, srate * duration, fillvalue)
+
+
+def dynamic_delay(source, delta, max_delay=4410):
+    """
+    Variable length delay.
+    No interpolation between samples.
+    """
+    delta = to_iterable(delta)
+    buf = [0] * max_delay
+    for sample, d, i in zip(source, delta, cycle(range(max_delay))):
+        buf[i] = sample
+        yield buf[i - int(floor(d))]
+
+def dynamic_delay1(source, delta, max_delay=4410):
+    """
+    First order Lagrange delay.
+    Linear interpolation between samples.
+    """
+    delta = to_iterable(delta)
+    max_delay += 1
+    buf = [0] * max_delay
+    for sample, d, i in zip(source, delta, cycle(range(max_delay))):
+        buf[i] = sample
+        int_d = int(floor(d))
+        d = d - int_d
+        x1 = buf[i - int_d - 1]
+        x0 = buf[i - int_d]
+        yield x0 + d * (x1 - x0)
+
+#TODO: make non-causal to allow delays < 1 sample?
+def dynamic_delay3(source, delta, max_delay=4410):
+    """Third order Lagrange delay."""
+    delta = to_iterable(delta)
+    max_delay += 3
+    buf = [0] * max_delay
+    for sample, d, i in zip(source, delta, cycle(range(max_delay))):
+        buf[i] = sample
+        int_d = int(floor(d - 1))
+        d = d - int_d
+        x3 = buf[i - int_d - 3]
+        x2 = buf[i - int_d - 2]
+        x1 = buf[i - int_d - 1]
+        x0 = buf[i - int_d]
+
+        # TODO: Factor out to minimize the number of multiplications.
+        yield x0 + d * (-11 * x0 + 18 * x1 - 9 * x2 + 2 * x3 + d * (6 * x0 - 15 * x1 + 12 * x2 - 3 * x3 + d * (-x0 + 3 * x1 - 3 * x2 + x3))) * 0.1666666666666666666666666

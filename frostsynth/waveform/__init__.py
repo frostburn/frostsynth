@@ -33,6 +33,12 @@ def halfcircleb(phase):
     return sqrt(1.6211389382774044 - 6.484555753109618 * x * x) - 1
 
 
+def pinch(phase):
+    phase += 0.75
+    x = phase - floor(phase + 0.5)
+    return atan(atanh(0.99 - 1.98 * abs(x + x))) * 0.82675935153194158
+
+
 def tang(phase):
     x = phase - floor(phase + 0.5)
     return (tanh(tan(pi * phase)) - x - x) * 3.5686502577037404

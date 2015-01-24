@@ -1,4 +1,4 @@
-from math import ceil
+from math import floor, ceil
 from itertools import dropwhile
 
 from frostsynth import get_srate
@@ -10,7 +10,7 @@ class PolySequence(object):
         self.coefficientss = coefficientss
         self.periodic = periodic
         self.srate = srate
-        self._prune_coefficientss()
+        #self._prune_coefficientss()
 
     def _prune_coefficientss(self):
         self.coefficientss = [tuple(dropwhile(lambda x: x == 0, coefficients)) for coefficients in self.coefficientss]
@@ -43,9 +43,13 @@ class PolySequence(object):
         prev_x = x
         for i, target_x in enumerate(self.xs[1:]):
             dx = x - prev_x
-            if dx < 0:
+            l = target_x - x
+            if l <= 0:
                 continue
-            samples = int(ceil((target_x - x) * srate))
+            if i < len(self.xs) - 2:
+                samples = int(ceil(l * srate))
+            else:
+                samples = int(floor(l * srate))
             coefficients = self.coefficientss[i]
             if not coefficients:
                 for _ in range(samples):
@@ -94,6 +98,15 @@ class PolySequence(object):
             x += samples * dt
             prev_x = target_x
 
+    @property
+    def length(self):
+        return self.xs[-1] - self.xs[0]
+
+    @property
+    def samples(self):
+        srate = get_srate(self.srate)
+        return int(self.length * srate)
+
     def extend_to(self, value=0):
         if value < self.xs[0]:
             self.xs.insert(0, value)
@@ -132,6 +145,77 @@ class PolySequence(object):
     def constant(_, duration, value, start=0):
         return PolySequence([start, start + duration], [(value,)])
 
+    def _add_coefficientss(self, other):
+        coefficientss = []
+        for coefficients in self.coefficientss:
+            if not coefficients:
+                coefficientss.append((other, ))
+            else:
+                coefficientss.append(coefficients[:-1] + (coefficients[-1] + other,))
+        return coefficientss
+
+    def copy(self):
+        return PolySequence(self.xs, self.coefficientss)
+
+    def to_list(self):
+        raise NotImplementedError
+
+    def __neg__(self):
+        result = self.copy()
+        result.scale_y(-1)
+        return result
+
+    def __add__(self, other):
+        if isinstance(other, PolySequence):
+            return NotImplemented
+        else:
+            return PolySequence(self.xs, self._add_coefficientss(other))
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __iadd__(self, other):
+        self.coefficientss = self._add_coefficientss(other)
+        return self
+
+    def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __rsub__(self, other):
+        return -(self.__add__(-other))
+
+    def __isub__(self, other):
+        self += -other
+        return self
+
+    def __mul__(self, other):
+        if isinstance(other, PolySequence):
+            return NotImplemented
+        else:
+            coefficientss = [tuple(coefficient * other for coefficient in coefficients) for coefficients in self.coefficientss]
+            return PolySequence(self.xs, coefficientss)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __imul__(self, other):
+        self.scale_y(other)
+        return self
+
+    def __truediv__(self, other):
+        return self.__mul__(1 / other)
+
+    def __itruediv__(self, other):
+        self.scale_y(1 / other)
+        return self
+
+
+
+class ConstantSequence(PolySequence):
+    def __init__(self, data):
+        xs, ys = zip(*data)
+        super().__init__(xs, [(y, ) for y in ys])
+
 
 class LinearSequence(PolySequence):
     def __init__(self, data):
@@ -141,8 +225,9 @@ class LinearSequence(PolySequence):
             if l > 0:
                 coefficientss.append(((d1[1] - d0[1]) / l, d0[1]))
             else:
-                coefficientss.append((d0[1],))
+                coefficientss.append((d0[1], 0))
         super().__init__([d[0] for d in data], coefficientss)
+        #self._prune_coefficientss()
 
     @classmethod
     def from_flat_list(cls, l):
@@ -151,6 +236,27 @@ class LinearSequence(PolySequence):
             while True:
                 yield (next(i), next(i))
         return cls(list(g()))
+
+
+class NaturalParabolic(PolySequence):
+    """Pretty useless. Suffers from oscillations."""
+    def __init__(self, data):
+        xs, ys = zip(*data)
+
+        as_ = [0]
+        for i in range(1, len(data) - 1):
+            as_.append(((xs[i] - xs[i + 1]) * (as_[i - 1] + ys[i - 1]) + (xs[i + 1] - xs[i - 1]) * ys[i]) / (xs[i] - xs[i - 1]) - ys[i + 1])
+
+        coefficientss = []
+        for a, x0, y0, x1, y1 in zip(as_, xs, ys, xs[1:], ys[1:]):
+            i_delta_x = 1 / (x1 - x0)
+            coefficientss.append((
+                -a * i_delta_x * i_delta_x,
+                (a + y1 - y0) * i_delta_x,
+                y0,
+            ))
+
+        super().__init__(xs, coefficientss)
 
 
 class CubicSequence(PolySequence):
@@ -164,7 +270,10 @@ class CubicSequence(PolySequence):
             delta_x = (x0 - x1)
             if delta_x < 0:
                 y0 = d0[1]
-                s0 = d0[3]
+                if len(d0) < 4:
+                    s0 = d0[2]
+                else:
+                    s0 = d0[3]
 
                 y1 = d1[1]
                 s1 = d1[2]
@@ -233,5 +342,5 @@ class NaturalSpline(CubicSequence):
         for i in range(len(d) - 2, -1, -1):
             ss.insert(0, d[i] - c[i] * ss[0])
 
-        data = [(x, y, s, s) for x, y, s in zip(xs, ys, ss)]
+        data = [(x, y, s) for x, y, s in zip(xs, ys, ss)]
         super().__init__(data)

@@ -83,6 +83,9 @@ def gaussian_env(source, amplitude, decay, t_max=0, srate=None):
     return [s * e for s, e in zip(source, envelope)]
 
 
+# TODO: erf_envelope_gen
+
+
 def hold_release_env(source, hold, release, full=False, srate=None):
     srate = get_srate(srate)
     buf = timeslice(source, hold + release, srate=srate)

@@ -110,11 +110,14 @@ def time_k(k, t0=0.0, srate=None):
     return [t0 + i * dt for i in range(k)]
 
 
-def time(duration, t0=0.0, srate=None):
+def time(duration, t0=0, srate=None):
     if srate is None:
         srate = _srate
-    dt = 1.0 / srate
-    return [t0 + i * dt for i in range(int(duration * srate))]
+    dt = 1 / srate
+    if t0 == 0:
+        return [i * dt for i in range(int(duration * srate))]
+    else:
+        return [t0 + i * dt for i in range(int(duration * srate))]
 
 
 def time_gen(t0=0.0, srate=None):
@@ -154,19 +157,28 @@ def differentiate(source, srate=None):
     return [(s1 - s0) * srate for s0, s1 in zip(source, source[1:])]
 
 
-def integrate_gen(source, srate=None):
+def integrate_gen(source, initial=0, srate=None):
     """
     Integrates 'source' with respect to time.
     For example if source is frequency then integrate() yields phase.
     """
     if srate is None:
         srate = _srate
-    dt = 1.0 / srate
-    return accumulate(s * dt for s in source)
+    dt = 1 / srate
+    for sample in source:
+        initial += sample * dt
+        yield initial
 
 
-def integrate(source, srate=None):
-    return list(integrate_gen(source, srate))
+def integrate(source, initial=0, srate=None):
+    if srate is None:
+        srate = _srate
+    dt = 1 / srate
+    result = []
+    for sample in source:
+        initial += sample * dt
+        result.append(initial)
+    return result
 
 
 def timeslice_gen(source, *args, **kwargs):
@@ -276,17 +288,36 @@ def mix_longest(sources):
     return list(mix_longest_gen(sources))
 
 
-def to_iterable(source):
-    if isinstance(source, Iterable):
-        return iter(source)
+def to_iterable(source, n=None):
+    if n is None:
+        if isinstance(source, Iterable):
+            return iter(source)
+        else:
+            return repeat(source)
     else:
-        return repeat(source)
+        if isinstance(source, Iterable):
+            return islice(source, 0, n)
+        else:
+            return (source for _ in range(n))
 
 
-def to_sequence(source, n):
+def to_iterable_t(source, duration=None, srate=None):
+    if srate is None:
+        srate = _srate
+    if duration is None:
+        return to_iterable(source)
+    else:
+        return to_iterable(source, int(duration * srate))
+
+
+def to_sequence(source, n=None):
     if isinstance(source, Sequence):
         return source
+    elif isinstance(source, Iterable):
+        return list(source)
     else:
+        if n is None:
+            raise ValueError("Cannot convert constant to a sequence without maximum length specified.")
         return [source] * n
 
 
@@ -341,6 +372,9 @@ two_pi = 2 * math.pi
 
 
 two_pi_j = two_pi * 1j
+
+
+half_pi = 0.5 * math.pi
 
 
 pi_squared = math.pi * math.pi
