@@ -3,4 +3,5 @@ __pycache__
 *.mid
 *.pyc
 *.pickle
+*.out
 temp.txt
