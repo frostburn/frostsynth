@@ -10,8 +10,10 @@ from frostsynth.series import *
 from frostsynth.additive import *
 from frostsynth.analysis import *
 from frostsynth.resample import *
+from frostsynth.osc import *
 
 # TODO: Pass srate around correctly
+# TODO: Update to latest note model
 
 
 def sine_beep(note):
@@ -20,7 +22,7 @@ def sine_beep(note):
 
 
 def softsaw_bass(note):
-    phase = integrate_gen(note.get_frequency_gen(), srate=note.srate)
+    phase = note.phase_gen()
     time_ = time(note.duration + 1, srate=note.srate)
     sharpness = decay_envelope_gen(0.75 + 0.25 * note.note_on_velocity, 1, srate=note.srate)
     return [
@@ -83,6 +85,17 @@ def flute(note):
     resonator = filtered_comb(feedforward(exitation, k, -1.0), k - 1, lambda s: twozero(s, -4 * 1.1 ** (200.0 / note.frequency), 1, 2, 1))
     resonator = resampler3_gen(resonator, (freq * i_r_freq for freq in note.get_frequency_gen()))
     return gain(resonator, 2.7 * (note.frequency if note.frequency < 1000 else 1000) ** -0.75)
+
+
+def menacing_saw(note, sign=-1):
+    duration = note.duration + 0.2
+    frequency = note.frequency_seq(0.2)
+    sharpness = note.controller_seq('sharpness', 0.2)
+    fm_index = note.controller_seq('fm index', 0.2)
+    ss = []
+    for phase in noisy_phases(frequency, 0.25, 0.5):
+        ss.append([softsaw(p + cub(2 * p + t * sign) * i * 0.5, s) * 0.1 for t, p, s, i in timed(phase, sharpness, fm_index)])
+    return tanh_env(mix(ss), 0.02, note.duration, 0.07, srate=note.srate)
 
 
 def dirty_steel_drum(note):

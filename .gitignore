@@ -5,3 +5,4 @@ __pycache__
 *.pickle
 *.out
 temp.txt
+events.json

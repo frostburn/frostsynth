@@ -1,7 +1,7 @@
 from math import *
 from cmath import rect as from_polar, exp as cexp
 
-from frostsynth import epsilon, clip, two_pi, i_pi, pi_squared
+from frostsynth import epsilon, clip, two_pi, half_pi, i_pi, pi_squared
 from frostsynth.ffi import precycloid
 
 
@@ -45,14 +45,11 @@ def tang(phase):
 
 
 def tooth(phase):
-    return tanh(tan(pi * phase) ** 2) * 2 -1
+    return tanh(tan(pi * phase) ** 2) * 2 - 1
 
 
 def toothb(phase):
-    return tanh(tan(pi * phase) ** 2) * 1.643545436007719 -1
-
-
-half_pi = 0.5 * pi
+    return tanh(tan(pi * phase) ** 2) * 1.643545436007719 - 1
 
 
 def tri(phase):

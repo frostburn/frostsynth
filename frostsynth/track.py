@@ -2,6 +2,7 @@ from math import log
 from itertools import repeat
 
 from frostsynth import *
+from frostsynth.waveform import sine
 from frostsynth.resample import resampler0_gen
 
 
@@ -186,6 +187,55 @@ M7 = dim8 = major_seventh = 11
 P8 = Aug7 = octave = 12
 
 
+class TrackContext(object):
+    def __init__(self, controllers=None, modulation_frequency=7, srate=None):
+        if controllers is None:
+            controllers = {}
+        self.controllers = controllers
+        self.modulation_frequency = modulation_frequency
+        self._srate = srate
+        for controller in self.controllers.values():
+            controller.srate = srate
+
+    @property
+    def srate(self):
+        return get_srate(self._srate)
+
+    def pitch_bend_ratio_gen(self, note_on_time):
+        tbm = zip(
+            time_gen(t0=note_on_time, srate=self.srate),
+            self.controller_gen('pitch bend', note_on_time),
+            self.controller_gen('modulation', note_on_time)
+        )
+        return (itofm(bend + mod * sine(self.modulation_frequency * t)) for t, bend, mod in tbm)
+
+    def pitch_bend_ratio_seq(self, note_on_time, duration):
+        tbm = zip(
+            time(t0=note_on_time, duration=duration, srate=self.srate),
+            self.controller_seq('pitch bend', note_on_time, duration),
+            self.controller_seq('modulation', note_on_time, duration)
+        )
+        return [itofm(bend + mod * sine(self.modulation_frequency * t)) for t, bend, mod in tbm]
+
+    def controller_gen(self, name, note_on_time):
+        if name in self.controllers:
+            return self.controllers[name].gen_from(note_on_time)
+        else:
+            return repeat(0)
+
+    def controller_seq(self, name, note_on_time, duration):
+        if name in self.controllers:
+            return self.controllers[name].range(t0=note_on_time, duration=duration)
+        else:
+            return constant_t(0, duration)
+
+    def __getitem__(self, key):
+        return self.controllers[key]
+
+    def __setitem__(self, key, value):
+        self.controllers[key] = value
+
+
 class Event(object):
     def __init__(self, srate=None):
         self._srate = srate
@@ -201,6 +251,7 @@ class Rest(Event):
         self.duration = duration
 
 
+# TODO: Context
 class Note(Event):
     def __init__(self, pitch=None, frequency=None, note_on_velocity=None, duration=None, note_off_velocity=None, pitch_bend=None, srate=None):
         super().__init__(srate=srate)
@@ -247,11 +298,42 @@ class AbsoluteMixin(object):
         return int(self.note_on_time * self.srate)
 
 
-# TODO: Handle the pitchless case
 class AbsoluteNote(Note, AbsoluteMixin):
-    def __init__(self, pitch=None, frequency=None, note_on_time=None, note_on_velocity=None, duration=None, note_off_velocity=None, srate=None):
-        super().__init__(pitch=pitch, frequency=frequency, note_on_velocity=note_on_velocity, duration=duration, note_off_velocity=note_off_velocity, srate=srate)
+    def __init__(self, pitch=None, frequency=None, note_on_time=None, note_on_velocity=None, duration=None, note_off_velocity=None, context=None):
+        super().__init__(pitch=pitch, frequency=frequency, note_on_velocity=note_on_velocity, duration=duration, note_off_velocity=note_off_velocity, srate=None)
         self.note_on_time = note_on_time
+        self.context = context
+
+    @property
+    def srate(self):
+        if self.context is None:
+            return get_srate()
+        else:
+            return self.context.srate
+
+    def frequency_gen(self):
+        if self.context is None:
+            return repeat(self.frequency)
+        else:
+            return (self.frequency * r for r in self.context.pitch_bend_ratio_gen(self.note_on_time))
+
+    def phase_gen(self):
+        return integrate_gen(self.frequency_gen(), srate=self.srate)
+
+    def controller_gen(self, name):
+        return self.context.controller_gen(name, self.note_on_time)
+
+    def frequency_seq(self, extra_duration=0):
+        if self.context is None:
+            return constant_t(self.frequency, self.duration + extra_duration, srate=self.srate)
+        else:
+            return [self.frequency * r for r in self.context.pitch_bend_ratio_seq(self.note_on_time, self.duration + extra_duration)]
+
+    def phase_seq(self, extra_duration=0):
+        return integrate(self.frequency_seq(extra_duration), srate=self.srate)
+
+    def controller_seq(self, name, extra_duration=0):
+        return self.context.controller_seq(name, self.note_on_time, self.duration + extra_duration)
 
     def copy(self, offset=0.0):
         return AbsoluteNote(self.pitch, None, self.note_on_time + offset, self.note_on_velocity, self.duration, self.note_off_velocity, self._srate)
@@ -260,6 +342,10 @@ class AbsoluteNote(Note, AbsoluteMixin):
         if self.pitch:
             return "AbsoluteNote(pitch=%s, note_on_time=%s, note_on_velocity=%s, duration=%s, note_off_velocity=%s)" % (
                 pitch_names[self.pitch], self.note_on_time, self.note_on_velocity, self.duration, self.note_off_velocity
+            )
+        else:
+            return "AbsoluteNote(frequency=%s, note_on_time=%s, note_on_velocity=%s, duration=%s, note_off_velocity=%s)" % (
+                self.frequency, self.note_on_time, self.note_on_velocity, self.duration, self.note_off_velocity
             )
 
 
@@ -288,7 +374,7 @@ def merge(list1, list2, k):
     return result
 
 
-def absolute_note_list_to_sound(track, instrument):
+def absolute_note_list_to_sound(instrument, track):
     result = []
     for absolute_note in sorted(track):
         instrument_sound = instrument(absolute_note)

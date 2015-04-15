@@ -1,14 +1,15 @@
 from math import floor, ceil
 from itertools import dropwhile
 
-from frostsynth import get_srate
+from frostsynth import get_srate, time, time_gen
 
 
 class PolySequence(object):
-    def __init__(self, xs, coefficientss, periodic=False, srate=None):
+    def __init__(self, xs, coefficientss, periodic=False, clamped=False, srate=None):
         self.xs = xs
         self.coefficientss = coefficientss
         self.periodic = periodic
+        self.clamped = clamped
         self.srate = srate
         #self._prune_coefficientss()
 
@@ -20,9 +21,19 @@ class PolySequence(object):
             raise NotImplementedError
         else:
             if x < self.xs[0]:
-                return 0
+                if self.clamped:
+                    return self.coefficientss[0][-1] if self.coefficientss[0] else 0
+                else:
+                    return 0
             elif x >= self.xs[-1]:
-                return 0
+                if self.clamped:
+                    mu = self.xs[-1] - self.xs[-2]
+                    r = 0
+                    for coefficient in self.coefficientss[-1]:
+                        r = mu * r + coefficient
+                    return r
+                else:
+                    return 0
             else:
                 sx = self.xs[0]
                 for index, next_sx in enumerate(self.xs, -1):
@@ -98,6 +109,12 @@ class PolySequence(object):
             x += samples * dt
             prev_x = target_x
 
+    def gen_from(self, t0):
+        return (self(t) for t in time_gen(t0=t0, srate=self.srate))
+
+    def range(self, duration, t0=0):
+        return [self(t) for t in time(duration=duration, t0=t0, srate=self.srate)]
+
     @property
     def length(self):
         return self.xs[-1] - self.xs[0]
@@ -155,7 +172,7 @@ class PolySequence(object):
         return coefficientss
 
     def copy(self):
-        return PolySequence(self.xs, self.coefficientss)
+        return PolySequence(self.xs, self.coefficientss, periodic=self.periodic, clamped=self.clamped)
 
     def to_list(self):
         raise NotImplementedError
@@ -169,7 +186,7 @@ class PolySequence(object):
         if isinstance(other, PolySequence):
             return NotImplemented
         else:
-            return PolySequence(self.xs, self._add_coefficientss(other))
+            return PolySequence(self.xs, self._add_coefficientss(other), periodic=self.periodic, clamped=self.clamped)
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -193,7 +210,7 @@ class PolySequence(object):
             return NotImplemented
         else:
             coefficientss = [tuple(coefficient * other for coefficient in coefficients) for coefficients in self.coefficientss]
-            return PolySequence(self.xs, coefficientss)
+            return PolySequence(self.xs, coefficientss, periodic=self.periodic, clamped=self.clamped)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -218,7 +235,10 @@ class ConstantSequence(PolySequence):
 
 
 class LinearSequence(PolySequence):
-    def __init__(self, data):
+    def __init__(self, data, clamped=False):
+        if not data:
+            super().__init__([0, 1], [()], clamped=clamped)
+            return
         coefficientss = []
         for d0, d1 in zip(data, data[1:]):
             l = (d1[0] - d0[0])
@@ -226,7 +246,7 @@ class LinearSequence(PolySequence):
                 coefficientss.append(((d1[1] - d0[1]) / l, d0[1]))
             else:
                 coefficientss.append((d0[1], 0))
-        super().__init__([d[0] for d in data], coefficientss)
+        super().__init__([d[0] for d in data], coefficientss, clamped=clamped)
         #self._prune_coefficientss()
 
     @classmethod

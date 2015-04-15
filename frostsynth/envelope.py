@@ -86,6 +86,10 @@ def gaussian_env(source, amplitude, decay, t_max=0, srate=None):
 # TODO: erf_envelope_gen
 
 
+def tanh_env(source, attack, hold, release, srate=None):
+    return [s * tanh(3 * t / attack) * (0.5 + 0.5 * tanh(6 * (hold - t) / release)) for t, s in timed(source, srate=srate)]
+
+
 def hold_release_env(source, hold, release, full=False, srate=None):
     srate = get_srate(srate)
     buf = timeslice(source, hold + release, srate=srate)

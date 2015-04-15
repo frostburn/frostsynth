@@ -1,5 +1,5 @@
 /*
-    /dev/input enabled jack client by Lumi Pakkanen.
+    /dev/input/ enabled jack client by Lumi Pakkanen (2015).
 
     Makefile? Just gcc client.c -lm -ljack -O3
 
@@ -35,6 +35,146 @@
 
 #include <jack/jack.h>
 #include <jack/midiport.h>
+
+typedef enum {NOTE_ON, NOTE_OFF, PITCH_BEND, MODULATION, PITCH_BEND2, MODULATION2, VOLUME, TREMOLO, PARAM_A, PARAM_B} event_t;
+
+typedef struct track_event {
+    event_t type;
+    long long sample;
+    int key;
+    double frequency;
+    double value;
+    int time_tag;
+} track_event;
+
+track_event *track_events;
+size_t track_index;
+size_t track_size;
+
+void init_track_events()
+{
+    track_size = 1;
+    track_events = (track_event*) malloc(sizeof(track_event) * track_size);
+    track_index = 0;
+}
+
+void track_next()
+{
+    track_index++;
+    if (track_index >= track_size){
+        track_size <<= 1;
+        track_events = (track_event*) realloc(track_events, sizeof(track_event) * track_size);
+    }
+}
+
+/*
+void track_note(long long sample, long long note_off_sample, double frequency, double velocity, double note_off_velocity, int time_tag, int note_off_time_tag)
+{
+    track_events[track_index].type = NOTE;
+    track_events[track_index].sample = sample;
+    track_events[track_index].note_off_sample = note_off_sample;
+    track_events[track_index].frequency = frequency;
+    track_events[track_index].value = velocity;
+    track_events[track_index].note_off_velocity = note_off_velocity;
+    track_events[track_index].time_tag = time_tag;
+    track_events[track_index].note_off_time_tag = note_off_time_tag;
+
+    track_next();
+}
+*/
+
+void track_note(event_t type, long long sample, int key, double frequency, double velocity, int time_tag)
+{
+    track_events[track_index].type = type;
+    track_events[track_index].sample = sample;
+    track_events[track_index].key = key;
+    track_events[track_index].frequency = frequency;
+    track_events[track_index].value = velocity;
+    track_events[track_index].time_tag = time_tag;
+
+    track_next();
+}
+
+void track_simple(event_t type, long long sample, double value, int time_tag)
+{
+    track_events[track_index].type = type;
+    track_events[track_index].sample = sample;
+    track_events[track_index].value = value;
+    track_events[track_index].time_tag = time_tag;
+
+    track_next();
+}
+
+jack_default_audio_sample_t SRATE;
+jack_default_audio_sample_t SAMPDELTA;
+unsigned short INITIAL_TIME_TAG;
+
+void track_dump_and_free()
+{
+    size_t i;
+    char *type;
+    FILE *outfile = fopen("events.json", "w");
+    if (outfile == NULL){
+        printf("Cannot open events.json\n");
+        return;
+    }
+    fprintf(outfile, "{\"sampling rate\": %g,\n\"initial time tag\": %d,\n\"events\": [\n", SRATE, INITIAL_TIME_TAG);
+    for (i = 0; i < track_index; i++){
+        track_event e = track_events[i];
+        if (e.type == NOTE_ON || e.type == NOTE_OFF){
+            switch (e.type){
+                case NOTE_ON:
+                    type = "note on";
+                    break;
+                case NOTE_OFF:
+                    type = "note off";
+                    break;
+                default:
+                    type = "unknown note event";
+            }
+            fprintf(
+                outfile, "{\"type\": \"%s\", \"sample\": %lld, \"key\": %d, \"frequency\": %g, \"velocity\": %g, \"time tag\": %d}",
+                type, e.sample, e.key, e.frequency, e.value, e.time_tag
+            );
+        }
+        else {
+            switch (e.type){
+                case PITCH_BEND:
+                    type = "pitch bend";
+                    break;
+                case MODULATION:
+                    type = "modulation";
+                    break;
+                case VOLUME:
+                    type = "volume";
+                    break;
+                case TREMOLO:
+                    type = "tremolo";
+                    break;
+                case PARAM_A:
+                    type = "param a";
+                    break;
+                case PARAM_B:
+                    type = "param b";
+                    break;
+                default:
+                    type = "unknown";
+            }
+            fprintf(outfile, "{\"type\": \"%s\", \"sample\": %lld, \"value\": %g, \"time tag\": %d}", type, e.sample, e.value, e.time_tag);
+        }
+        if (i < track_index - 1){
+            fprintf(outfile, ",");
+        }
+        fprintf(outfile, "\n");
+    }
+    fprintf(outfile, "]\n}\n");
+    if (fclose(outfile) != 0){
+        printf("Error closing events.json\n");
+    }
+    free(track_events);
+    track_index = -1;
+    track_size = -1;
+}
 
 #define INIT_BUTTON (129)
 #define INIT_AXIS (130)
@@ -143,22 +283,22 @@ double sb = 0.0;
 #define MAX_POLYPHONY (128)
 #define VOICES (3)
 #define FADE_TIME (0.2)
-int note_on_key[MAX_POLYPHONY];
+int note_on_keys[MAX_POLYPHONY];
 double phases[MAX_POLYPHONY * VOICES];
 double _deltas[MAX_POLYPHONY * VOICES];
 double freqs[MAX_POLYPHONY];
 double note_on_times[MAX_POLYPHONY];
+long long note_on_samples[MAX_POLYPHONY];
+unsigned short note_on_time_tags[MAX_POLYPHONY];
 double note_off_times[MAX_POLYPHONY];
 
 
 //jack_port_t *input_port;
 jack_port_t *output_port;
 
-jack_default_audio_sample_t SAMPDELTA;
-
-
 void calc_note_frqs(jack_default_audio_sample_t srate)
 {
+    SRATE = srate;
     SAMPDELTA = 1.0 / srate;
 }
 
@@ -166,7 +306,7 @@ void reset_notes()
 {
     int i, j;
     for (i=0; i < MAX_POLYPHONY; i++){
-        note_on_key[i] = NONE;
+        note_on_keys[i] = NONE;
         for (j = 0; j < VOICES; j++){
             phases[i + MAX_POLYPHONY * j] = 0.0;
         }
@@ -242,6 +382,7 @@ int process(jack_nframes_t nframes, void *arg)
     int next_index;
     double result, amplitude, bend_ratio, wf, aa, bb, x, note_on_t, note_off_t;
     jack_default_audio_sample_t *out = (jack_default_audio_sample_t *) jack_port_get_buffer (output_port, nframes);
+    long long sample = current_block * nframes;
     current_block++;
     rb = read(fd, ev, sizeof(joy_event) * 64);
     if (rb > 0){
@@ -250,22 +391,38 @@ int process(jack_nframes_t nframes, void *arg)
         for (j=0; j < rb; j++){
             //printf("code %d\ntime %d\naxis %d\ntype %d\nnum %d\n\n", ev[j].code, ev[j].time, ev[j].axis, ev[j].type, ev[j].num);
             if (ev[j].type == BUTTON){
-                if (ev[j].axis){
-                    next_index = find_free_index();
-                    note_on_key[next_index] = ev[j].num;
-                    for (k = 0; k < VOICES; k++){
-                        phases[next_index + MAX_POLYPHONY * k] = 0.0;
-                    }
-                    freqs[next_index] = get_freq(ev[j]);
-                    note_on_times[next_index] = t;
-                    note_off_times[next_index] = INFINITY;
-                }
-                else {
-                    for (k=0; k < MAX_POLYPHONY; k++){
-                        if (note_on_key[k] == ev[j].num){
-                            note_off_times[k] = t;
-                            note_on_key[k] = NONE;
+                if (ev[j].num < 9){
+                    if (ev[j].axis){
+                        next_index = find_free_index();
+                        note_on_keys[next_index] = -ev[j].num - 1;
+                        for (k = 0; k < VOICES; k++){
+                            phases[next_index + MAX_POLYPHONY * k] = 0.0;
                         }
+                        freqs[next_index] = get_freq(ev[j]);
+                        note_on_times[next_index] = t;
+                        note_on_samples[next_index] = sample;
+                        note_off_times[next_index] = INFINITY;
+                        note_on_time_tags[next_index] = ev[j].time;
+                        track_note(NOTE_ON, sample, note_on_keys[next_index], freqs[next_index], 0.7, ev[j].time);
+                    }
+                    else {
+                        for (k=0; k < MAX_POLYPHONY; k++){
+                            if (note_on_keys[k] == -ev[j].num - 1){
+                                track_note(NOTE_OFF, sample, note_on_keys[k], freqs[k], 0.7, ev[j].time);
+                                note_off_times[k] = t;
+                                note_on_keys[k] = NONE;
+                            }
+                        }
+                    }
+                }
+                else if (ev[j].axis){
+                    if (ev[j].num == 9){
+                        octave--;
+                        printf("octave down to %d\n", octave);
+                    }
+                    else if (ev[j].num == 10){
+                        octave++;
+                        printf("octave up to %d\n", octave);
                     }
                 }
             }
@@ -274,25 +431,31 @@ int process(jack_nframes_t nframes, void *arg)
                     accidental = MAX(-1, MIN(1, ev[j].axis));
                 }
                 else if (ev[j].num == 7){
-                    octave += MAX(-1, MIN(1, -ev[j].axis));
+                    //octave += MAX(-1, MIN(1, -ev[j].axis));
                 }
                 else if (ev[j].num == 2){
                     a = 0.5 + 0.5 * (ev[j].axis / 32767.0);
+                    track_simple(PARAM_A, sample, a, ev[j].time);
                 }
                 else if (ev[j].num == 5){
                     b = 0.5 + 0.5 * (ev[j].axis / 32767.0);
+                    track_simple(PARAM_B, sample, b, ev[j].time);
                 }
                 else if (ev[j].num == 0){
                     pitch_bend = 1.0 * ev[j].axis / 32767.0;
+                    track_simple(PITCH_BEND, sample, pitch_bend, ev[j].time);
                 }
                 else if (ev[j].num == 1){
                     modulation = 0.5 * ev[j].axis / 32767.0;
+                    track_simple(MODULATION, sample, modulation, ev[j].time);
                 }
                 else if (ev[j].num == 3){
                     volume = ev[j].axis / 32767.0;
+                    track_simple(VOLUME, sample, volume, ev[j].time);
                 }
                 else if (ev[j].num == 4){
                     tremolo = 0.5 * ev[j].axis / 32767.0;
+                    track_simple(TREMOLO, sample, tremolo, ev[j].time);
                 }
             }
         }
@@ -369,8 +532,10 @@ int main(int narg, char **args)
     }
     joy_description joy_desc;
     init_joy(&joy_desc);
+    INITIAL_TIME_TAG = joy_desc.time;
     printf("time %d\nnumber of buttons %d\nnumber of axis %d\n\n", joy_desc.time, joy_desc.num_buttons, joy_desc.num_axis);
 
+    init_track_events();
     init_tables();
 
     const char **ports;
@@ -418,12 +583,18 @@ int main(int narg, char **args)
     free (ports);
 
     /* run until interrupted */
+    /*
     while(1)
     {
         sleep(1);
     }
+    */
+    printf("press enter to quit\n");
+    getchar();
+    printf("shutting down\n");
     jack_client_close(client);
     close(fd);
+    track_dump_and_free();
     exit (0);
 }
 

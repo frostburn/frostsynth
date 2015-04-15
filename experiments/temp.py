@@ -177,3 +177,53 @@ def snowy_gen(frequency, vmin=-1.0, vmax=1.0, variability=0.0, srate=None):
             d3 = y1 + dp * (phase - srate / 3)
         yield (y1 + dp * phase + d3) * 0.5
         phase += sample
+
+
+#Physical string simulation using masses connected with springs. Not that good really.
+set_srate(44100 * 4)
+
+xs = [i + ((10 - abs(10 - i)) * 0.01 if i < 20 else 0) for i in range(100)]
+vs = [0] * 100
+cons = [[i - 1, i + 1] for i in range(100)]
+cons[0] = None
+cons[-1] = None
+
+def f(xs, vs):
+    fs = []
+    for x, v, c in zip(xs, vs, cons):
+        f = 0
+        if c is not None:
+            for con in c:
+                f += xs[con] - x
+        fs.append(f - 0.001 * v)
+    return (vs, fs)
+
+s = []
+h = 0.1
+x2s = [0] * len(xs)
+v2s = [0] * len(vs)
+x3s = [0] * len(xs)
+v3s = [0] * len(vs)
+x4s = [0] * len(xs)
+v4s = [0] * len(vs)
+for t in time(1):
+    x1s, v1s = f(xs, vs)
+    for i in range(len(xs)):
+        x2s[i] = xs[i] + x1s[i] * 0.5 * h
+        v2s[i] = vs[i] + v1s[i] * 0.5 * h
+    x2s, v2s = f(x2s, v2s)
+    for i in range(len(xs)):
+        x3s[i] = xs[i] + x2s[i] * 0.5 * h
+        v3s[i] = vs[i] + v2s[i] * 0.5 * h
+    x3s, v3s = f(x3s, v3s)
+    for i in range(len(xs)):
+        x4s[i] = xs[i] + x3s[i] * h
+        v4s[i] = vs[i] + v3s[i] * h
+    x4s, v4s = f(x4s, v4s)
+    for i in range(len(xs)):
+        xs[i] += h / 6 * (x1s[i] + 2 * x2s[i] + 2 * x3s[i] + x4s[i])
+        vs[i] += h / 6 * (v1s[i] + 2 * v2s[i] + 2 * v3s[i] + v4s[i])
+    s.append(xs[1] - 1)
+
+
+s = gain(s, 10.0)

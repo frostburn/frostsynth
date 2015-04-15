@@ -28,6 +28,7 @@ from frostsynth.interpolation import *
 from frostsynth.aplayout import play, stereo_play
 from frostsynth.waveout import save, stereo_save
 from frostsynth.ffi import malloc_copy, precycloid, j0, j1, jn, y0, y1, yn
+from frostsynth import track_json
 
 srate = get_srate()
 
@@ -448,15 +449,66 @@ if False:
 
 #s = [i(t * 1000) for t in time(1)]
 
-s = sin_snow_gen(linspace_t(880, 880 * 2, 2), linspace_t(-1, 1, 2))
+#s = sin_snow_gen(linspace_t(880, 880 * 2, 2), linspace_t(-1, 1, 2))
 
-s = gain(s, 0.5)
+#wf = lambda phase: tanh(2 * pink_saw(phase) + 3 * pink_saw(phase * 1.5))
 
-if True:
+#s = noisy_wf(wf, constant_t(440, 1))
+
+#s = map(lambda x: x + erf(4 * x), s)
+
+#phi = 0.5 * (1 + sqrt(5))
+#s = [cub(220 * t + sine(551 * t) * 0.02) * 0.4 * cub(t * 2) + cub((220 - t) * phi * t) * 0.4 * cub(t * 2 * 7 / 5.0) for t in time(3)]
+
+class FilteredController(object):
+    def __init__(self, controller, filter):
+        self.controller = controller
+        self.filter = filter
+
+    def range(self, *args, **kwargs):
+        return self.filter(self.controller.range(*args, **kwargs))
+
+set_srate(44100 * 4)
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+notes, context = track_json.load("tracks/gamepad_wub.json", {'param a': 'sharpness', 'param b': 'fm index'})
+context['sharpness'] = 0.5 * context['sharpness'] + 0.49
+
+smoother = lambda s: list(lpf(s, 10))
+context['sharpness'] = FilteredController(context['sharpness'], smoother)
+context['fm index'] = FilteredController(context['fm index'], smoother)
+
+left = absolute_note_list_to_sound(menacing_saw, notes)
+right = absolute_note_list_to_sound(lambda n: menacing_saw(n, 1), notes)
+
+auto_gain = True
+
+if False:
     s = dither(s)
 
-    print(max(s),min(s))
+    print(max(s), min(s))
+    print(len(s))
 
     play(s)
 
     save(s, "temp.wav")
+else:
+    left = dither(left)
+    right = dither(right)
+
+    mal = max(left)
+    mil = min(left)
+    mar = max(right)
+    mir = min(right)
+    print(mal, mil)
+    print(mar, mir)
+    print(len(left), len(right))
+
+    g = 1 / max(abs(mal), abs(mil), abs(mar), abs(mir))
+    if auto_gain:
+        left = gain(left, g)
+        right = gain(right, g)
+
+    #stereo_play(left, right)
+    stereo_save(left, right, "temp.wav")

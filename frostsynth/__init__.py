@@ -312,9 +312,15 @@ def to_iterable_t(source, duration=None, srate=None):
 
 def to_sequence(source, n=None):
     if isinstance(source, Sequence):
-        return source
+        if n is None:
+            return source
+        else:
+            return source[:n]
     elif isinstance(source, Iterable):
-        return list(source)
+        if n is None:
+            return list(source)
+        else:
+            return list(islice(source, 0, n))
     else:
         if n is None:
             raise ValueError("Cannot convert constant to a sequence without maximum length specified.")
@@ -366,6 +372,10 @@ epsilon = 1e-10
 
 def equal(a, b):
     return abs(a - b) <= epsilon
+
+
+def sign(x):
+    return math.copysign(1, x)
 
 
 two_pi = 2 * math.pi
