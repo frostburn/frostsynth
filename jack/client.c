@@ -402,6 +402,9 @@ void change_program(int num){
         case 1:
             current_voices = 1;
             break;
+        case 2:
+            current_voices = 1;
+            break;
         default:
             printf("Unknown program number %d\n", program_number);
     }
@@ -419,44 +422,13 @@ void init_note(int index)
         case 1:
             phases[index] = 0.0;
             break;
-        default:
-            break;
-    }
-}
-
-void modify_deltas()
-{
-    int i, j;
-    switch (program_number){
-        case 0:
-            for (i = 0; i < MAX_POLYPHONY; i++){
-                for (j = 0; j < current_voices; j++){
-                    phase_deltas[i + j * MAX_POLYPHONY] *= pow(2.0, frand() * 0.04);
-                }
-            }
+        case 2:
+            phases[index] = 0.0;
             break;
         default:
             break;
     }
 }
-
-
-double get_waveform(double phase, double note_on_t, double note_off_t, double note_on_velocity, double note_off_velocity)
-{
-    if (program_number == 0){
-        double x = phase;
-        x = x + 1.2 * sb * sine(2 * x + 2 * t);
-        double s = 0.5 + sa * 0.478;
-        return 0.1 * note_on_velocity * atan(s * sine(x) / (1.0 + s * cosine(x))) / asin(s) * MAX(0, 1.0 - note_off_t / (0.1 - 0.05 * note_on_velocity));
-    }
-    else if (program_number == 1){
-        return 0.5 * note_on_velocity * sine(phase) * exp(-note_on_t) * MAX(0, 1.0 - note_off_t / (0.2 - 0.1 * note_on_velocity));
-    }
-    else {
-        return 0.0;
-    }
-}
-
 
 int process(jack_nframes_t nframes, void *arg)
 {
@@ -622,11 +594,19 @@ int process(jack_nframes_t nframes, void *arg)
     }
     bend_ratio = pow(2.0, (pitch_bend + pitch_bend2 + sine(7 * t) * (modulation + modulation2)) / 12.0);
     for (i = 0; i < MAX_POLYPHONY; i++){
-        for (j = 0; j < current_voices; j++){
-            phase_deltas[i + j * MAX_POLYPHONY] = freqs[i] * bend_ratio * SAMPDELTA;
+        double delta = freqs[i] * bend_ratio * SAMPDELTA;
+        if (program_number == 0){
+            for (j = 0; j < current_voices; j++){
+                phase_deltas[i + j * MAX_POLYPHONY] = delta * pow(2.0, frand() * 0.04);
+            }
+        }
+        else if (program_number == 1){
+            phase_deltas[i] = delta * pow(2, frand() * 0.01);
+        }
+        else if (program_number == 2){
+            phase_deltas[i] = delta * pow(2, frand() * 0.005);
         }
     }
-    modify_deltas();
     for (i = 0; i<nframes; i++){
         result = 0.0;
         for (j = 0; j < MAX_POLYPHONY; j++){
@@ -641,11 +621,36 @@ int process(jack_nframes_t nframes, void *arg)
                     note_off_t = t - note_off_times[j];
                     note_off_velocity = note_on_velocities[j];
                 }
+                double note_on_velocity = note_on_velocities[j];
+
+                if (program_number == 0){
+                    wf = 0.0;
+                    for (k = 0; k < current_voices; k++){
+                        double x = phases[j + k * MAX_POLYPHONY];
+                        x = x + 1.2 * sb * sine(2 * x + 2 * t);
+                        double s = 0.5 + sa * 0.478;
+                        wf += atan(s * sine(x) / (1.0 + s * cosine(x))) / asin(s);
+                    }
+                    result += note_on_velocity * wf * 0.1 * MAX(0, 1.0 - note_off_t / 0.1);
+                }
+                else if (program_number == 1){
+                    double x = phases[j];
+                    result += 0.5 * note_on_velocity * sine(x + sine(x) * exp(-3 * note_on_t) * note_on_velocity) * exp(-note_on_t) * MAX(0, 1.0 - note_off_t / (0.2 - 0.1 * note_on_velocity));
+                }
+                else if (program_number == 2){
+                    double x = phases[j];
+                    result += 0.5 * MIN(1, note_on_t * 500) *
+                              tanh(note_on_velocity * 3 *
+                                sine(3 * x + (sine(2 * x + t) + sine(5 * x - t) * 0.6 * note_on_velocity) * 0.6 * exp(-4 * note_on_t) * note_on_velocity) * exp(-note_on_t)
+                              ) * 
+                              sqrt(note_on_velocity) * exp(-2 * note_on_t) * MAX(0, 1.0 - note_off_t * 10);
+                }
+
                 for (k = 0; k < current_voices; k++){
                     int index = j + k * MAX_POLYPHONY;
-                    result += get_waveform(phases[index], note_on_t, note_off_t, note_on_velocities[j], note_off_velocity);
                     phases[index] += phase_deltas[index];
                 }
+
             }
         }
         sa = 0.8 * sa + 0.2 * a;
@@ -653,6 +658,9 @@ int process(jack_nframes_t nframes, void *arg)
         smooth_volume = 0.8 * smooth_volume + 0.2 * volume;
         amplitude = 0.5 + 0.5 * smooth_volume;
         result *= amplitude * (1.0 + cosine(7 * t) * tremolo);
+        if (program_number == 1){
+            result = 0.7 * result + 0.3 * tanh(12 * result);
+        }
         out[i] = (jack_default_audio_sample_t) result;
         t += SAMPDELTA;
         current_block++;
