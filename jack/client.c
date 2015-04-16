@@ -145,6 +145,12 @@ void track_dump_and_free()
                 case MODULATION:
                     type = "modulation";
                     break;
+                case PITCH_BEND2:
+                    type = "pitch bend 2";
+                    break;
+                case MODULATION2:
+                    type = "modulation 2";
+                    break;
                 case VOLUME:
                     type = "volume";
                     break;
@@ -267,11 +273,14 @@ double frand()
 }
 
 long long current_block = 0;
+long long sample = 0;
 double t = 0.0;
 int accidental = 0;
 int octave = 0;
 double pitch_bend = 0.0;
 double modulation = 0.0;
+double pitch_bend2 = 0.0;
+double modulation2 = 0.0;
 double volume = 0.0;
 double smooth_volume = 0.0;
 double tremolo = 0.0;
@@ -280,20 +289,25 @@ double sa = 0.0;
 double b = 0.0;
 double sb = 0.0;
 
+
 #define MAX_POLYPHONY (128)
-#define VOICES (3)
+#define MAX_VOICES (3)
 #define FADE_TIME (0.2)
+int program_number = 0;
+int current_voices = 3;
 int note_on_keys[MAX_POLYPHONY];
-double phases[MAX_POLYPHONY * VOICES];
-double _deltas[MAX_POLYPHONY * VOICES];
+double phases[MAX_POLYPHONY * MAX_VOICES];
+double phase_deltas[MAX_POLYPHONY * MAX_VOICES];
 double freqs[MAX_POLYPHONY];
 double note_on_times[MAX_POLYPHONY];
 long long note_on_samples[MAX_POLYPHONY];
 unsigned short note_on_time_tags[MAX_POLYPHONY];
+double note_on_velocities[MAX_POLYPHONY];
 double note_off_times[MAX_POLYPHONY];
+double note_off_velocities[MAX_POLYPHONY];
 
 
-//jack_port_t *input_port;
+jack_port_t *input_port;
 jack_port_t *output_port;
 
 void calc_note_frqs(jack_default_audio_sample_t srate)
@@ -307,7 +321,7 @@ void reset_notes()
     int i, j;
     for (i=0; i < MAX_POLYPHONY; i++){
         note_on_keys[i] = NONE;
-        for (j = 0; j < VOICES; j++){
+        for (j = 0; j < MAX_VOICES; j++){
             phases[i + MAX_POLYPHONY * j] = 0.0;
         }
         freqs[i] = 0.0;
@@ -374,6 +388,76 @@ double get_freq(joy_event e)
     }
 }
 
+double get_midi_freq(int key)
+{
+    return 440 * pow(2, (key - 69) / 12.0);
+}
+
+void change_program(int num){
+    program_number = num;
+    switch (program_number){
+        case 0:
+            current_voices = 3;
+            break;
+        case 1:
+            current_voices = 1;
+            break;
+        default:
+            printf("Unknown program number %d\n", program_number);
+    }
+}
+
+void init_note(int index)
+{
+    int i;
+    switch (program_number){
+        case 0:
+            for (i = 0; i < current_voices; i++){
+                phases[index + i * MAX_POLYPHONY] = 0.0;
+            }
+            break;
+        case 1:
+            phases[index] = 0.0;
+            break;
+        default:
+            break;
+    }
+}
+
+void modify_deltas()
+{
+    int i, j;
+    switch (program_number){
+        case 0:
+            for (i = 0; i < MAX_POLYPHONY; i++){
+                for (j = 0; j < current_voices; j++){
+                    phase_deltas[i + j * MAX_POLYPHONY] *= pow(2.0, frand() * 0.04);
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+
+double get_waveform(double phase, double note_on_t, double note_off_t, double note_on_velocity, double note_off_velocity)
+{
+    if (program_number == 0){
+        double x = phase;
+        x = x + 1.2 * sb * sine(2 * x + 2 * t);
+        double s = 0.5 + sa * 0.478;
+        return 0.1 * note_on_velocity * atan(s * sine(x) / (1.0 + s * cosine(x))) / asin(s) * MAX(0, 1.0 - note_off_t / (0.1 - 0.05 * note_on_velocity));
+    }
+    else if (program_number == 1){
+        return 0.5 * note_on_velocity * sine(phase) * exp(-note_on_t) * MAX(0, 1.0 - note_off_t / (0.2 - 0.1 * note_on_velocity));
+    }
+    else {
+        return 0.0;
+    }
+}
+
+
 int process(jack_nframes_t nframes, void *arg)
 {
     int i, j, k;
@@ -382,9 +466,13 @@ int process(jack_nframes_t nframes, void *arg)
     int next_index;
     double result, amplitude, bend_ratio, wf, aa, bb, x, note_on_t, note_off_t;
     jack_default_audio_sample_t *out = (jack_default_audio_sample_t *) jack_port_get_buffer (output_port, nframes);
-    long long sample = current_block * nframes;
-    current_block++;
-    rb = read(fd, ev, sizeof(joy_event) * 64);
+    // read /dev/input/
+    if (fd > 0){
+        rb = read(fd, ev, sizeof(joy_event) * 64);
+    }
+    else {
+        rb = -2;
+    }
     if (rb > 0){
         rb /= sizeof(joy_event);
         //printf("hi, %d events at %lld\n", rb, current_block);
@@ -395,20 +483,20 @@ int process(jack_nframes_t nframes, void *arg)
                     if (ev[j].axis){
                         next_index = find_free_index();
                         note_on_keys[next_index] = -ev[j].num - 1;
-                        for (k = 0; k < VOICES; k++){
-                            phases[next_index + MAX_POLYPHONY * k] = 0.0;
-                        }
+                        init_note(next_index);
                         freqs[next_index] = get_freq(ev[j]);
                         note_on_times[next_index] = t;
                         note_on_samples[next_index] = sample;
                         note_off_times[next_index] = INFINITY;
                         note_on_time_tags[next_index] = ev[j].time;
-                        track_note(NOTE_ON, sample, note_on_keys[next_index], freqs[next_index], 0.7, ev[j].time);
+                        note_on_velocities[next_index] = 0.7;
+                        track_note(NOTE_ON, sample, note_on_keys[next_index], freqs[next_index], note_on_velocities[next_index], ev[j].time);
                     }
                     else {
                         for (k=0; k < MAX_POLYPHONY; k++){
                             if (note_on_keys[k] == -ev[j].num - 1){
-                                track_note(NOTE_OFF, sample, note_on_keys[k], freqs[k], 0.7, ev[j].time);
+                                note_off_velocities[k] = 0.7;
+                                track_note(NOTE_OFF, sample, note_on_keys[k], freqs[k], note_off_velocities[k], ev[j].time);
                                 note_off_times[k] = t;
                                 note_on_keys[k] = NONE;
                             }
@@ -460,36 +548,104 @@ int process(jack_nframes_t nframes, void *arg)
             }
         }
     }
-    bend_ratio = pow(2.0, (pitch_bend + sine(7 * t) * modulation) / 12.0);
-    for (i = 0; i < MAX_POLYPHONY; i++){
-        double delta = freqs[i] * bend_ratio * SAMPDELTA;
-        for (j = 0; j < VOICES; j++){
-            _deltas[i + j * MAX_POLYPHONY] = delta * pow(2.0, frand() * 0.04);
+    // read midi
+    void* port_buf = jack_port_get_buffer(input_port, nframes);
+    jack_midi_event_t in_event;
+    jack_nframes_t event_index = 0;
+    jack_nframes_t event_count = jack_midi_get_event_count(port_buf);
+    if (event_count > 0){
+        //printf(" have %d midi events\n", event_count);
+        for (event_index = 0; event_index < event_count; event_index++){
+            jack_midi_event_get(&in_event, port_buf, event_index);
+            //printf("    event %d time is %d, size is %zu\n", event_index, in_event.time, in_event.size);
+            //for (i = 0; i < in_event.size; i++){
+            //    printf("    byte %d is 0x%x\n", i, in_event.buffer[i]);
+            //}
+            unsigned char channel = in_event.buffer[0] & 0x0f;
+            unsigned char type = in_event.buffer[0] & 0xf0;
+            long long event_sample = sample + in_event.time;
+            if (type == 0x90){
+                next_index = find_free_index();
+                note_on_keys[next_index] = in_event.buffer[1];
+                init_note(next_index);
+                freqs[next_index] = get_midi_freq(in_event.buffer[1]);
+                note_on_times[next_index] = t + in_event.time * SAMPDELTA;
+                note_on_samples[next_index] = event_sample;
+                note_off_times[next_index] = INFINITY;
+                note_on_time_tags[next_index] = -1;
+                note_on_velocities[next_index] = in_event.buffer[2] / 127.0;
+                track_note(NOTE_ON, note_on_samples[next_index], note_on_keys[next_index], freqs[next_index], note_on_velocities[next_index], -1);
+            }
+            else if (type == 0x80){
+                for (k = 0; k < MAX_POLYPHONY; k++){
+                    if (note_on_keys[k] == in_event.buffer[1]){
+                        note_off_velocities[k] = in_event.buffer[2] / 127.0;
+                        track_note(NOTE_OFF, event_sample, note_on_keys[k], freqs[k], note_off_velocities[k], -1);
+                        note_off_times[k] = t + in_event.time * SAMPDELTA;
+                        note_on_keys[k] = NONE;
+                    }
+                }
+            }
+            else if (type == 0xb0){
+                unsigned char controller_number = in_event.buffer[1];
+                if (controller_number == 0x01){
+                    modulation2 = in_event.buffer[2] / 127.0;
+                    track_simple(MODULATION2, event_sample, modulation2, -1);
+                }
+                if (controller_number == 0x78 || controller_number >= 0x7c){
+                    for (k = 0; k < MAX_POLYPHONY; k++){
+                        if (note_on_keys[k] >= 0){
+                            note_off_velocities[k] = 1.0;
+                            track_note(NOTE_OFF, event_sample, note_on_keys[k], freqs[k], note_off_velocities[k], -1);
+                            note_off_times[k] = t + in_event.time * SAMPDELTA;
+                            note_on_keys[k] = NONE;
+                        }
+                    }
+                }
+            }
+            else if (type == 0xe0){
+                int lsb = in_event.buffer[1];
+                int msb = in_event.buffer[2];
+                //int value = lsb + msb * 128 - 8192;
+                if (msb < 64){
+                    pitch_bend2 = 2 * (msb - 64) / 64.0;
+                }
+                else {
+                    pitch_bend2 = 2 * (msb - 64) / 63.0;
+                }
+                track_simple(PITCH_BEND2, event_sample, modulation2, -1);
+            }
+            else if (type == 0xc0){
+                change_program(in_event.buffer[1]);
+            }
         }
     }
+    bend_ratio = pow(2.0, (pitch_bend + pitch_bend2 + sine(7 * t) * (modulation + modulation2)) / 12.0);
+    for (i = 0; i < MAX_POLYPHONY; i++){
+        for (j = 0; j < current_voices; j++){
+            phase_deltas[i + j * MAX_POLYPHONY] = freqs[i] * bend_ratio * SAMPDELTA;
+        }
+    }
+    modify_deltas();
     for (i = 0; i<nframes; i++){
         result = 0.0;
         for (j = 0; j < MAX_POLYPHONY; j++){
-            if (note_off_times[j] + FADE_TIME > t){
+            if (note_on_times[j] <= t && note_off_times[j] + FADE_TIME > t){
                 note_on_t = t - note_on_times[j];
+                double note_off_velocity;
                 if (note_off_times[j] > t){
                     note_off_t = 0.0;
+                    note_off_velocity = 0.0;
                 }
                 else {
                     note_off_t = t - note_off_times[j];
+                    note_off_velocity = note_on_velocities[j];
                 }
-                wf = 0.0;
-                for (k = 0; k < VOICES; k++){
+                for (k = 0; k < current_voices; k++){
                     int index = j + k * MAX_POLYPHONY;
-                    double x = phases[index];
-                    x = x + 1.2 * sb * sine(2 * x + 2 * t);
-                    double s = 0.5 + sa * 0.478;
-                    wf += atan(s * sine(x) / (1.0 + s * cosine(x))) / asin(s);
-                    wf += sine(phases[index]);
-                    phases[index] += _deltas[index];
+                    result += get_waveform(phases[index], note_on_t, note_off_t, note_on_velocities[j], note_off_velocity);
+                    phases[index] += phase_deltas[index];
                 }
-                wf *= 0.4;
-                result += wf * 0.2 * MAX(0, 1.0 - note_off_t / 0.1);
             }
         }
         sa = 0.8 * sa + 0.2 * a;
@@ -499,6 +655,8 @@ int process(jack_nframes_t nframes, void *arg)
         result *= amplitude * (1.0 + cosine(7 * t) * tremolo);
         out[i] = (jack_default_audio_sample_t) result;
         t += SAMPDELTA;
+        current_block++;
+        sample += nframes;
     }
     return 0;
 }
@@ -520,20 +678,20 @@ int main(int narg, char **args)
     fd = open("/dev/input/js0", O_RDONLY);
     if (fd > 0){
         printf("Device open at /dev/input/js0\n");
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0){
+            printf("Error setting non-blocking mode\n");
+            exit(-1);
+        }
+        joy_description joy_desc;
+        init_joy(&joy_desc);
+        INITIAL_TIME_TAG = joy_desc.time;
+        printf("time %d\nnumber of buttons %d\nnumber of axis %d\n\n", joy_desc.time, joy_desc.num_buttons, joy_desc.num_axis);
     }
     else {
         printf("Cannot open device at /dev/input/js0\n");
-        exit(-1);
+        //exit(-1);
     }
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0){
-        printf("Error setting non-blocking mode\n");
-        exit(-1);
-    }
-    joy_description joy_desc;
-    init_joy(&joy_desc);
-    INITIAL_TIME_TAG = joy_desc.time;
-    printf("time %d\nnumber of buttons %d\nnumber of axis %d\n\n", joy_desc.time, joy_desc.num_buttons, joy_desc.num_axis);
 
     init_track_events();
     init_tables();
@@ -557,7 +715,7 @@ int main(int narg, char **args)
 
     jack_on_shutdown (client, jack_shutdown, 0);
 
-    //input_port = jack_port_register (client, "midi_in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+    input_port = jack_port_register (client, "midi_in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
     output_port = jack_port_register (client, "audio_out", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 
     if (jack_activate (client))
