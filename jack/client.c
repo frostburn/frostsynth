@@ -272,6 +272,18 @@ double frand()
     return 2.0 * rand() / (double)RAND_MAX - 1.0;
 }
 
+#define BUFFER_LENGTH (4410)
+typedef struct KS_string
+{
+    double buffer[BUFFER_LENGTH];
+    int i;
+    int l;
+    double y0;
+    double y1;
+    double ratio;
+    double mu;
+} KS_string;
+
 long long current_block = 0;
 long long sample = 0;
 double t = 0.0;
@@ -292,7 +304,7 @@ double sb = 0.0;
 
 #define MAX_POLYPHONY (128)
 #define MAX_VOICES (3)
-#define FADE_TIME (0.2)
+#define FADE_TIME (0.5)
 int program_number = 0;
 int current_voices = 3;
 int note_on_keys[MAX_POLYPHONY];
@@ -305,6 +317,7 @@ unsigned short note_on_time_tags[MAX_POLYPHONY];
 double note_on_velocities[MAX_POLYPHONY];
 double note_off_times[MAX_POLYPHONY];
 double note_off_velocities[MAX_POLYPHONY];
+KS_string KS_strings[MAX_POLYPHONY];
 
 
 jack_port_t *input_port;
@@ -327,6 +340,16 @@ void reset_notes()
         freqs[i] = 0.0;
         note_on_times[i] = -INFINITY;
         note_off_times[i] = -INFINITY;
+        KS_string *s = KS_strings + i;
+        for (j = 0; j < BUFFER_LENGTH; j++){
+            s->buffer[j] = 0.0;
+        }
+        s->i = 0;
+        s->l = BUFFER_LENGTH;
+        s->y0 = 0.0;
+        s->y1 = 0.0;
+        s->ratio = 1.0;
+        s->mu = 0.0;
     }
 }
 
@@ -412,21 +435,37 @@ void change_program(int num){
 
 void init_note(int index)
 {
-    int i;
-    switch (program_number){
-        case 0:
-            for (i = 0; i < current_voices; i++){
-                phases[index + i * MAX_POLYPHONY] = 0.0;
+    int i, j;
+    if (program_number == 0){
+        for (i = 0; i < current_voices; i++){
+            phases[index + i * MAX_POLYPHONY] = 0.0;
+        }
+    }
+    else if (program_number == 1 || program_number == 2){
+        phases[index] = 0.0;
+    }
+    else if (program_number == 3){
+        double v = note_on_velocities[index];
+        KS_string *s = KS_strings + index;
+        for (i = 0; i < BUFFER_LENGTH; i++){
+            s->buffer[i] = frand() * v * v;
+        }
+        double l = SRATE / freqs[index];
+        s->i = 0;
+        s->l = (int)ceil(l);
+        for (i = 0; pow(i, 1.5 + 0.5 * v) < s->l; i++){
+            for (j = 0; j < s->l; j++){
+                s->buffer[j] = s->buffer[j] * 0.5 + 0.25 * (s->buffer[(j + s->l - 1) % s->l] + s->buffer[(j + 1) % s->l]);
             }
-            break;
-        case 1:
-            phases[index] = 0.0;
-            break;
-        case 2:
-            phases[index] = 0.0;
-            break;
-        default:
-            break;
+        }
+        for (i = 0; i < s->l; i++){
+            double x = i / (double)s->l;
+            s->buffer[i] += sine(x + tanh(sine(2 * x) * (0.5 + v))) * v * 0.3;
+        }
+        s->y0 = 0.0;
+        s->y1 = 0.0;
+        s->ratio = ceil(l) / l;
+        s->mu = 0.0;
     }
 }
 
@@ -455,13 +494,13 @@ int process(jack_nframes_t nframes, void *arg)
                     if (ev[j].axis){
                         next_index = find_free_index();
                         note_on_keys[next_index] = -ev[j].num - 1;
-                        init_note(next_index);
                         freqs[next_index] = get_freq(ev[j]);
                         note_on_times[next_index] = t;
                         note_on_samples[next_index] = sample;
                         note_off_times[next_index] = INFINITY;
                         note_on_time_tags[next_index] = ev[j].time;
                         note_on_velocities[next_index] = 0.7;
+                        init_note(next_index);
                         track_note(NOTE_ON, sample, note_on_keys[next_index], freqs[next_index], note_on_velocities[next_index], ev[j].time);
                     }
                     else {
@@ -539,13 +578,13 @@ int process(jack_nframes_t nframes, void *arg)
             if (type == 0x90){
                 next_index = find_free_index();
                 note_on_keys[next_index] = in_event.buffer[1];
-                init_note(next_index);
                 freqs[next_index] = get_midi_freq(in_event.buffer[1]);
                 note_on_times[next_index] = t + in_event.time * SAMPDELTA;
                 note_on_samples[next_index] = event_sample;
                 note_off_times[next_index] = INFINITY;
                 note_on_time_tags[next_index] = -1;
                 note_on_velocities[next_index] = in_event.buffer[2] / 127.0;
+                init_note(next_index);
                 track_note(NOTE_ON, note_on_samples[next_index], note_on_keys[next_index], freqs[next_index], note_on_velocities[next_index], -1);
             }
             else if (type == 0x80){
@@ -644,6 +683,23 @@ int process(jack_nframes_t nframes, void *arg)
                                 sine(3 * x + (sine(2 * x + t) + sine(5 * x - t) * 0.6 * note_on_velocity) * 0.6 * exp(-4 * note_on_t) * note_on_velocity) * exp(-note_on_t)
                               ) * 
                               sqrt(note_on_velocity) * exp(-2 * note_on_t) * MAX(0, 1.0 - note_off_t * 10);
+                }
+                else if (program_number == 3){
+                    KS_string *s = KS_strings + j;
+                    s->mu += s->ratio * bend_ratio;
+                    while (s->mu > 1.0){
+                        s->y1 = s->y0;
+                        if (note_off_t <= 0){
+                            s->y0 = (s->y0 * 0.3 + 0.7 * s->buffer[s->i]) / (1.0 + 0.0001 * s->l);
+                        }
+                        else {
+                            s->y0 = (s->y0 * 0.5 + 0.5 * s->buffer[s->i]) / (1.0 + 0.0001 * s->l);
+                        }
+                        s->buffer[s->i] = s->y0;
+                        s->i = (s->i + 1) % s->l;
+                        s->mu -= 1.0;
+                    }
+                    result += s->y1 + s->mu * (s->y0 - s->y1);
                 }
 
                 for (k = 0; k < current_voices; k++){
