@@ -301,6 +301,10 @@ double sa = 0.0;
 double b = 0.0;
 double sb = 0.0;
 
+int octave_select_mode = 0;
+int proram_select_mode = 0;
+int filtered = 0;
+
 
 #define MAX_POLYPHONY (128)
 #define MAX_VOICES (3)
@@ -319,6 +323,11 @@ double note_off_times[MAX_POLYPHONY];
 double note_off_velocities[MAX_POLYPHONY];
 KS_string KS_strings[MAX_POLYPHONY];
 
+double result_y0 = 0.0;
+double result_y1 = 0.0;
+double result_y2 = 0.0;
+double result1 = 0.0;
+double result2 = 0.0;
 
 jack_port_t *input_port;
 jack_port_t *output_port;
@@ -514,14 +523,19 @@ int process(jack_nframes_t nframes, void *arg)
                         }
                     }
                 }
-                else if (ev[j].axis){
-                    if (ev[j].num == 9){
-                        octave--;
-                        printf("octave down to %d\n", octave);
-                    }
-                    else if (ev[j].num == 10){
-                        octave++;
-                        printf("octave up to %d\n", octave);
+                else if (ev[j].num == 9){
+                    octave_select_mode = ev[j].axis;
+                }
+                else if (ev[j].num == 10){
+                    proram_select_mode = ev[j].axis;
+                    if (octave_select_mode && ev[j].axis != 0){
+                        filtered = !filtered;
+                        if (filtered){
+                            printf("Filter on\n");
+                        }
+                        else {
+                            printf("Filter off\n");
+                        }
                     }
                 }
             }
@@ -530,7 +544,18 @@ int process(jack_nframes_t nframes, void *arg)
                     accidental = MAX(-1, MIN(1, ev[j].axis));
                 }
                 else if (ev[j].num == 7){
-                    //octave += MAX(-1, MIN(1, -ev[j].axis));
+                    if (octave_select_mode){
+                        octave += MAX(-1, MIN(1, -ev[j].axis));
+                        if (ev[j].axis != 0){
+                            printf("octave = %d\n", octave);
+                        }
+                    }
+                    else if (proram_select_mode){
+                        program_number += MAX(-1, MIN(1, -ev[j].axis));
+                        if (ev[j].axis != 0){
+                            printf("program = %d\n", program_number);
+                        }
+                    }
                 }
                 else if (ev[j].num == 2){
                     a = 0.5 + 0.5 * (ev[j].axis / 32767.0);
@@ -668,7 +693,7 @@ int process(jack_nframes_t nframes, void *arg)
                         double x = phases[j + k * MAX_POLYPHONY];
                         x = x + 1.2 * sb * sine(2 * x + 2 * t);
                         double s = 0.5 + sa * 0.478;
-                        wf += atan(s * sine(x) / (1.0 + s * cosine(x))) / asin(s);
+                        wf += atan(s * sine(x) / (1.0 + s * cosine(x))) / asin(s) * (2 - 0.5 * (sa + sb));
                     }
                     result += note_on_velocity * wf * 0.1 * MAX(0, 1.0 - note_off_t / 0.1);
                 }
@@ -690,10 +715,12 @@ int process(jack_nframes_t nframes, void *arg)
                     while (s->mu > 1.0){
                         s->y1 = s->y0;
                         if (note_off_t <= 0){
-                            s->y0 = (s->y0 * 0.3 + 0.7 * s->buffer[s->i]) / (1.0 + 0.0001 * s->l);
+                            double d = 0.5 + 0.5 / (1 + 0.01 * s->l);
+                            s->y0 = (s->y0 * (1 - d) + d * s->buffer[s->i]) / (1.0 + 0.0001 * s->l);
                         }
                         else {
-                            s->y0 = (s->y0 * 0.5 + 0.5 * s->buffer[s->i]) / (1.0 + 0.0001 * s->l);
+                            double d = 0.5 + 0.5 / (2 + 0.1 * s->l);
+                            s->y0 = (s->y0 * (1 - d) + d * s->buffer[s->i]) / (1.0 + 0.0001 * s->l);
                         }
                         s->buffer[s->i] = s->y0;
                         s->i = (s->i + 1) % s->l;
@@ -715,9 +742,34 @@ int process(jack_nframes_t nframes, void *arg)
         amplitude = 0.5 + 0.5 * smooth_volume;
         result *= amplitude * (1.0 + cosine(7 * t) * tremolo);
         if (program_number == 1){
-            result = 0.7 * result + 0.3 * tanh(12 * result);
+            result = 0.5 * result + 0.2 * tanh(12 * result);
         }
-        out[i] = (jack_default_audio_sample_t) result;
+
+        if (filtered){
+            double lpf_freq = 300 * pow(2, 2.5 * (1 - sa));
+            double lpf_Q = 0.8 + 2 * sb;
+            double w0 = 2 * M_PI * lpf_freq * SAMPDELTA;
+            double cosw0 = cos(w0);
+            double alpha = sin(w0) / (2.0 * lpf_Q);
+            double cosw0_h = 0.5 * (1.0 - cosw0);
+            double a0 =1.0 + alpha;
+            double a1 = -2.0 * cosw0;
+            double a2 = 1.0 - alpha;
+            double b0 = cosw0_h;
+            double b1 = cosw0_h + cosw0_h;
+            double b2 = cosw0_h;
+
+            result_y0 = (-a1 * result_y1 - a2 * result_y2 + b0 * result + b1 * result1 + b2 * result2) / a0;
+            result_y2 = result_y1;
+            result_y1 = result_y0;
+            result2 = result1;
+            result1 = result;
+
+            out[i] = (jack_default_audio_sample_t) (0.5 * result_y0 + 0.5 * result);
+        }
+        else {
+            out[i] = (jack_default_audio_sample_t) result;
+        }
         t += SAMPDELTA;
         current_block++;
         sample += nframes;
